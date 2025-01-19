@@ -1,157 +1,186 @@
 # Gynergy Member Portal
 
-A **production-ready** MVP of the Gynergy Member Portal, built with:
+![Gynergy Logo](public/logo.png)
 
-- **Next.js 13 (App Router)**  
-- **NextAuth** for user authentication  
-- **Supabase** for database, storing user streaks/points/journal entries  
-- **OpenAI** (or any OCR service) for ephemeral photo OCR  
-- Full daily journaling flow, leaderboard, profile management, and history views
+A **production-ready** MVP of the Gynergy Member Portal - a comprehensive platform for daily journaling, community engagement, and personal growth tracking.
 
-## Table of Contents
+## 🌟 Key Features
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Architecture Overview](#architecture-overview)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Schema](#database-schema)
-- [Running the App](#running-the-app)
-- [Project Structure](#project-structure)
-- [Support and Contribution](#support-and-contribution)
+- ✍️ **Smart Journaling**
+  - Daily text entries with rich text formatting
+  - Photo-to-text conversion using OCR
+  - Automatic deletion of photos after processing (privacy-first)
 
-## Features
+- 🏆 **Engagement & Gamification**
+  - Daily streaks for consistent journaling
+  - Points system for various activities
+  - Community leaderboard
+  
+- 📱 **User Experience**
+  - Responsive design for all devices
+  - Dark/light mode support
+  - Intuitive calendar and list views for history
 
-1. **Daily Journaling**: Type text or upload a photo (OCR text extraction).
-2. **Ephemeral Photo Upload**: Image is deleted after OCR.
-3. **Streak and Points**: If user logs daily, streak increments; each entry gives points.
-4. **Leaderboard**: Ranks by longest streak or total points.
-5. **Journal History**: View/edit in list or calendar format.
-6. **Profile Management**: Edit name, email, profile picture.
+- 🔒 **Security & Privacy**
+  - NextAuth.js authentication
+  - Secure data storage with Supabase
+  - Ephemeral photo processing
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-- **Node.js** v16+  
-- **Yarn** or **npm**  
-- **Supabase** account (or a local Postgres DB)  
-- (Optional) **OpenAI** account or any other OCR provider
+- **Frontend**: Next.js 13 (App Router), TailwindCSS, TypeScript
+- **Backend**: Next.js API Routes, Supabase
+- **Authentication**: NextAuth.js
+- **Database**: PostgreSQL (via Supabase)
+- **OCR**: OpenAI Vision API (configurable)
+- **Deployment**: Vercel (recommended)
 
-## Architecture Overview
+## 🚀 Quick Start
 
-- **Next.js 13**: Single codebase for frontend + backend (API routes).
-- **NextAuth**: Handles sign in/out, sessions, and user identity.
-- **Supabase**: Database (Postgres) for all user/journal data. Also can store Auth (if using SupabaseAdapter).
-- **OCR**: Photo is posted to an API route, calls `openAIVisionOCR` or any custom OCR function.
-
-## Getting Started
-
-1. **Clone** this repository:
+1. **Clone & Install**
    ```bash
-   git clone https://github.com/yourorg/gynergy-member-portal.git
-   cd gynergy-member-portal
+   git clone https://github.com/benshapyro/gynergy.git
+   cd gynergy
+   npm install
+   ```
 
-2. Install dependencies:
+2. **Environment Setup**
+   Create a `.env.local` file:
+   ```bash
+   # Authentication
+   NEXTAUTH_SECRET=your-jwt-secret
+   NEXTAUTH_URL=http://localhost:3000
 
-```bash
-npm install
+   # Supabase
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_DATABASE_URL=your-connection-string
+
+   # OCR (Optional)
+   OPENAI_API_KEY=your-api-key
+   ```
+
+3. **Database Setup**
+   ```bash
+   # If using the provided schema
+   npm run db:setup
+   
+   # Or manually create tables in Supabase dashboard
+   # See schema.sql in /docs folder
+   ```
+
+4. **Development**
+   ```bash
+   npm run dev
+   ```
+   Visit http://localhost:3000
+
+5. **Production**
+   ```bash
+   npm run build
+   npm run start
+   ```
+
+## 📚 Documentation
+
+### Database Schema
+
+Key tables in the Supabase database:
+
+- `users`: User profiles and authentication
+- `journal_entries`: Daily journal entries
+- `streaks`: User activity streaks
+- `points`: Point accumulation and history
+
+See `docs/schema.sql` for complete schema.
+
+### API Routes
+
+- `/api/journal/*`: Journal entry management
+- `/api/leaderboard/*`: Streak and point rankings
+- `/api/user/*`: User profile operations
+- `/api/auth/*`: Authentication endpoints
+
+### Project Structure
+
+```
+gynergy/
+├── app/                  # Next.js 13 App Router directory
+│   ├── (auth)/          # Authentication pages (login, register)
+│   ├── (dashboard)/     # Main app interface and journal editor
+│   ├── api/             # Backend API routes for all functionality
+│   │   ├── auth/        # Authentication API endpoints
+│   │   ├── journal/     # Journal entry management endpoints
+│   │   ├── leaderboard/ # Streak and points ranking endpoints
+│   │   └── user/        # User profile management endpoints
+│   └── ...             # Other app pages (history, profile, etc.)
+├── lib/                 # Shared utilities and services
+│   ├── supabaseClient.ts   # Supabase database client setup
+│   ├── authOptions.ts      # NextAuth configuration
+│   └── ocrService.ts       # OCR service implementation
+├── public/              # Static assets (images, icons)
+├── docs/               # Documentation and database schema
+└── prisma/             # Database schema and migrations
 ```
 
-3. Configure environment variables in .env.local:
+### Key Files
 
-```bash
-NEXTAUTH_SECRET=YourJWTSecret
-SUPABASE_DATABASE_URL=postgres://...
-NEXT_PUBLIC_SUPABASE_URL=https://yourproj.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=public-anon-key
-OPENAI_API_KEY=sk-xxxx 
-```
+- `.env.local` - Environment variables for local development
+- `next.config.js` - Next.js configuration
+- `package.json` - Project dependencies and scripts
+- `tsconfig.json` - TypeScript configuration
+- `requirements.txt` - Python dependencies (if any)
 
-Environment Variables
-NEXTAUTH_SECRET: A secret key for JWT encryption (required by NextAuth).
-SUPABASE_DATABASE_URL: If using SupabaseAdapter as your NextAuth DB.
-NEXT_PUBLIC_SUPABASE_URL: Public Supabase project URL.
-NEXT_PUBLIC_SUPABASE_ANON_KEY: Public anon key from Supabase.
-OPENAI_API_KEY: If using OpenAI for OCR. Replace logic if using another provider.
+### Important Directories
 
-4. Set up the database:
+#### `/app` - Application Core
+Contains all pages, components, and API routes using Next.js 13's App Router architecture. Each subdirectory represents a route in the application.
 
-Create tables in your Supabase project or run the included SQL.
-If using NextAuth’s SupabaseAdapter, it will manage certain tables automatically.
+#### `/lib` - Shared Libraries
+Houses reusable utilities, database clients, and service implementations:
+- `supabaseClient.ts`: Configures and exports the Supabase client
+- `authOptions.ts`: NextAuth.js configuration for authentication
+- `ocrService.ts`: Handles OCR processing for journal photo uploads
 
-5. Run the app:
+#### `/app/api` - Backend Endpoints
+RESTful API routes that handle:
+- User authentication and session management
+- Journal entry CRUD operations
+- Leaderboard calculations and rankings
+- User profile updates
 
-```bash
-npm run dev
-```
-Access the app at http://localhost:3000. 
+#### `/app/(auth)` - Authentication
+Protected routes and authentication-related components:
+- Login page with email/password
+- Registration flow
+- Password reset functionality
 
-Database Schema
-See schema.sql or the snippet in the codebase to create your User and JournalEntry tables.
-If you are using NextAuth with a different adapter (e.g. Prisma), see official docs on required schema.
+#### `/app/(dashboard)` - Main Application
+Core application features:
+- Journal entry editor
+- Photo upload interface
+- Daily streak tracking
+- Points visualization
 
-Running the App
-Local: npm run dev → http://localhost:3000
-Production:
-npm run build
-npm run start
-Or deploy to Vercel, AWS, Netlify, etc.
-Project Structure
-See the top-level folder layout in this repo. The key directories:
+## 🤝 Contributing
 
-app/api/*: Route handlers for journaling, profile, leaderboard, etc.
-app/(auth)/*: Login and register pages.
-app/(dashboard)/*: The main journaling UI.
-lib/*: Shared utilities (Supabase client, OCR, NextAuth config).
-public/*: Public assets.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
+## 📝 License
 
-## Project Structure
-gynergy-member-portal/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   │   └── page.tsx
-│   │   ├── register/
-│   │   │   └── page.tsx
-│   ├── (dashboard)/
-│   │   ├── page.tsx
-│   │   └── components/
-│   │       ├── JournalEditor.tsx
-│   │       └── PhotoUploadOCR.tsx
-│   ├── (leaderboard)/
-│   │   └── page.tsx
-│   ├── (history)/
-│   │   ├── list/
-│   │   │   └── page.tsx
-│   │   ├── calendar/
-│   │   │   └── page.tsx
-│   ├── (profile)/
-│   │   └── page.tsx
-│   ├── api/
-│   │   ├── auth/
-│   │   │   └── [...nextauth]/route.ts
-│   │   ├── journal/
-│   │   │   ├── save/route.ts
-│   │   │   └── upload/route.ts
-│   │   ├── leaderboard/
-│   │   │   ├── streaks/route.ts
-│   │   │   └── points/route.ts
-│   │   ├── user/
-│   │   │   └── profile/route.ts
-│   │   └── ocr/route.ts (Optional if separate)
-│   ├── layout.tsx
-│   └── page.tsx
-├── lib/
-│   ├── supabaseClient.ts
-│   ├── authOptions.ts
-│   └── ocrService.ts
-├── prisma/
-│   └── schema.prisma (Optional if using Prisma)
-├── public/
-│   └── placeholder.png (example)
-├── .env.local (not committed)
-├── next.config.js
-├── package.json
-├── tsconfig.json
-├── README.md
-└── requirements.txt
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Next.js team for the amazing framework
+- Supabase for the powerful backend platform
+- OpenAI for the Vision API
+- All contributors and users of Gynergy
+
+---
+
+Made with ❤️ by the Gynergy team
