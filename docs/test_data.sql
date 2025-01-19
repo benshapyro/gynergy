@@ -6,9 +6,18 @@ VALUES ('The only way to do great work is to love what you do.', 'Steve Jobs', C
 INSERT INTO daily_actions (action_text, tip_text, active_date)
 VALUES ('Write a thank you note to someone who helped you recently', 'Be specific about how their actions impacted you', CURRENT_DATE);
 
+-- Insert test user (if using auth.users table)
+INSERT INTO auth.users (id, email)
+VALUES ('a1b2c3d4-e5f6-4321-8901-abcdef123456', 'test@example.com')
+ON CONFLICT (id) DO NOTHING;
+
 -- Test journal entry creation
-INSERT INTO journal_entries (user_id, date)
-VALUES (auth.uid(), CURRENT_DATE);
+INSERT INTO journal_entries (id, user_id, date)
+VALUES (
+  uuid_generate_v4(),
+  'a1b2c3d4-e5f6-4321-8901-abcdef123456',
+  CURRENT_DATE
+);
 
 -- Get the journal entry id for further insertions
 DO $$
@@ -16,7 +25,7 @@ DECLARE
     journal_id UUID;
 BEGIN
     SELECT id INTO journal_id FROM journal_entries 
-    WHERE user_id = auth.uid() AND date = CURRENT_DATE;
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' AND date = CURRENT_DATE;
 
     -- Insert test morning affirmations
     INSERT INTO morning_affirmations (journal_entry_id, affirmation_text, affirmation_order)
@@ -39,7 +48,7 @@ BEGIN
 
     -- Insert gratitude action response
     INSERT INTO gratitude_action_responses (journal_entry_id, action_completed, morning_reflection)
-    VALUES (journal_id, false, 'I will write a thank you note to my mentor');
+    VALUES (journal_id, true, 'I will write a thank you note to my mentor');
 
     -- Update morning section
     UPDATE journal_entries 
@@ -48,9 +57,8 @@ BEGIN
         morning_mood_score = 4,
         morning_mood_text = 'Feeling energetic and positive',
         morning_mood_factors = 'Good sleep and exercise',
-        mantra = 'Today is full of possibilities'
+        mantra = 'Today is full of possibilities',
+        morning_completed = true,
+        morning_points = 5
     WHERE id = journal_id;
-
-    -- Call the complete morning entry function
-    PERFORM complete_morning_entry(journal_id);
 END $$; 
