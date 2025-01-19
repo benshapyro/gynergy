@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { DailyQuote } from '@/components/journal/DailyQuote';
 import MountainProgress from '@/components/journal/MountainProgress';
 import { JournalStatus } from '@/components/journal/JournalStatus';
@@ -15,6 +16,20 @@ const MILESTONES = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
+
+  const handleStartMorningJournal = () => {
+    router.push('/journal/morning');
+  };
+
+  const handleStartEveningJournal = () => {
+    router.push('/journal/evening');
+  };
+
+  const handleCompleteAction = () => {
+    router.push('/journal/gratitude');
+  };
+
   return (
     <main className="dashboard">
       {/* Header Section */}
@@ -48,7 +63,10 @@ export default function DashboardPage() {
             </div>
             <p>Start your day with intention</p>
             <div className="card-footer">
-              <button className="action-button">
+              <button 
+                className="action-button"
+                onClick={handleStartMorningJournal}
+              >
                 <span>Start morning journal</span>
                 <span className="arrow">→</span>
               </button>
@@ -65,7 +83,10 @@ export default function DashboardPage() {
             </div>
             <p>Reflect on your day</p>
             <div className="card-footer">
-              <button className="action-button">
+              <button 
+                className="action-button"
+                onClick={handleStartEveningJournal}
+              >
                 <span>Start evening journal</span>
                 <span className="arrow">→</span>
               </button>
@@ -82,7 +103,10 @@ export default function DashboardPage() {
             </div>
             <p>Write a thank you note to someone who helped you recently</p>
             <div className="card-footer">
-              <button className="action-button">
+              <button 
+                className="action-button"
+                onClick={handleCompleteAction}
+              >
                 <span>Complete action</span>
                 <span className="arrow">→</span>
               </button>
