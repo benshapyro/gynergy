@@ -159,8 +159,8 @@ export default function DashboardPage() {
         }
 
         .mountain-section {
-          height: 400px;
-          margin-bottom: 2rem;
+          height: 500px;
+          margin: 3rem 0;
           border-radius: 16px;
           overflow: hidden;
         }
@@ -293,7 +293,7 @@ export default function DashboardPage() {
           }
 
           .mountain-section {
-            height: 300px;
+            height: 400px;
           }
 
           .journal-cards {

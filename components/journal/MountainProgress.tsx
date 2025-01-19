@@ -38,14 +38,15 @@ export default function MountainProgress({
     <div className="mountain-container">
       {/* Background Elements */}
       <div className="stars">
-        {[...Array(30)].map((_, i) => (
+        {[...Array(100)].map((_, i) => (
           <div 
             key={i} 
-            className="star"
+            className={`star star-${i % 3}`}
             style={{
               left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 40}%`,
-              animationDelay: `${Math.random() * 5}s`
+              top: `${Math.random() * 60}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              transform: `scale(${0.8 + Math.random() * 0.4})`
             }}
           />
         ))}
@@ -54,73 +55,70 @@ export default function MountainProgress({
       {/* SVG Mountains */}
       <svg 
         className="mountains" 
-        viewBox="0 0 1000 400" 
+        viewBox="0 0 1200 600" 
         preserveAspectRatio="none"
       >
-        {/* Background Mountains */}
+        {/* Far Background Mountains */}
+        <path 
+          className="mountain mountain-4"
+          d="M-100 600 L100 480 L300 520 L500 450 L700 500 L900 460 L1100 490 L1300 470 L1300 600 Z" 
+        />
         <path 
           className="mountain mountain-3"
-          d="M0 400 L200 300 L400 350 L600 280 L800 330 L1000 290 L1000 400 Z" 
-        />
-        <path 
-          className="mountain mountain-2"
-          d="M0 400 L150 320 L300 350 L450 300 L600 340 L750 290 L900 320 L1000 300 L1000 400 Z" 
+          d="M-100 600 L50 500 L200 540 L400 480 L600 520 L800 470 L1000 510 L1200 480 L1300 600 Z" 
         />
         
-        {/* Main Mountain (that progress follows) */}
+        {/* Mid Background Mountains */}
+        <path 
+          className="mountain mountain-2"
+          d="M-50 600 L100 520 L300 560 L500 500 L700 550 L900 490 L1100 540 L1250 510 L1250 600 Z" 
+        />
+        
+        {/* Main Mountain */}
         <path 
           className="mountain mountain-1"
-          d="M0 400 L0 350 L1000 100 L1000 400 Z" 
+          d="M100 600 L100 600 L600 200 L1100 600 L1100 600 Z" 
         />
 
         {/* Progress Path */}
         <path
           className="progress-path"
-          d="M0 350 L1000 100"
+          d="M100 600 L600 200"
           fill="none"
-          strokeDasharray="1000"
-          strokeDashoffset={1000 - (progress * 10)}
+          strokeDasharray="1400"
+          strokeDashoffset={1400 - (progress * 14)}
         />
 
         {/* Milestone Markers */}
         {milestones.map((milestone, index) => {
           const milestoneProgress = (milestone.points / totalPoints) * 100;
-          const isCurrent = currentPoints >= milestone.points;
-          const x = milestoneProgress * 10;
-          const y = 350 - (milestoneProgress * 2.5);
+          
+          // Calculate position along the mountain slope
+          const progress = milestone.points / totalPoints;
+          const x = 100 + (progress * 500); // From 100 to 600 (mountain peak)
+          const y = 600 - (progress * 400); // From 600 to 200 (mountain height)
+          
+          // Mark as achieved if current points are higher than this milestone
+          const isAchieved = currentPoints >= milestone.points;
           
           return (
             <g 
               key={index}
-              className={`milestone ${isCurrent ? 'achieved' : ''}`}
+              className={`milestone ${isAchieved ? 'achieved' : ''}`}
               transform={`translate(${x}, ${y})`}
             >
-              <circle className="milestone-marker" r="6" />
               <text 
                 className="milestone-label" 
-                y="-15"
-                x="10"
-                textAnchor="start"
+                y="-20"
+                x="-15"
+                textAnchor="end"
               >
-                {milestone.label.toUpperCase()}
+                {milestone.label}
               </text>
+              <circle className="milestone-marker" r="5" />
             </g>
           );
         })}
-
-        {/* Current Level Indicator */}
-        {currentMilestone && (
-          <g className="current-level">
-            <text 
-              x={progress * 10}
-              y={350 - (progress * 2.5) + 30}
-              className="current-level-label"
-              textAnchor="middle"
-            >
-              {currentMilestone.label.toUpperCase()}
-            </text>
-          </g>
-        )}
       </svg>
 
       {/* Progress Stats */}
@@ -140,7 +138,12 @@ export default function MountainProgress({
           position: relative;
           width: 100%;
           height: 100%;
-          background: rgb(16, 16, 16);
+          min-height: 500px;
+          background: linear-gradient(
+            to bottom,
+            rgb(8, 8, 12),
+            rgb(16, 16, 24)
+          );
           border-radius: 16px;
           overflow: hidden;
         }
@@ -156,17 +159,45 @@ export default function MountainProgress({
 
         .star {
           position: absolute;
-          width: 2px;
-          height: 2px;
           background: white;
           border-radius: 50%;
           opacity: 0;
           animation: twinkle 5s infinite;
         }
 
+        .star-0 {
+          width: 1px;
+          height: 1px;
+          box-shadow: 
+            0 0 2px rgba(255, 255, 255, 0.8),
+            0 0 4px rgba(255, 255, 255, 0.4);
+        }
+
+        .star-1 {
+          width: 2px;
+          height: 2px;
+          box-shadow: 
+            0 0 4px rgba(255, 255, 255, 0.8),
+            0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
+        .star-2 {
+          width: 3px;
+          height: 3px;
+          box-shadow: 
+            0 0 6px rgba(255, 255, 255, 0.8),
+            0 0 12px rgba(255, 255, 255, 0.4);
+        }
+
         @keyframes twinkle {
-          0%, 100% { opacity: 0; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.1); }
+          0%, 100% { 
+            opacity: 0; 
+            transform: scale(1); 
+          }
+          50% { 
+            opacity: 0.8; 
+            transform: scale(1.2); 
+          }
         }
 
         .mountains {
@@ -179,19 +210,24 @@ export default function MountainProgress({
         }
 
         .mountain {
-          transition: all 0.3s ease;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .mountain-1 {
-          fill: rgb(32, 32, 32);
+          fill: rgb(32, 32, 40);
+          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
         }
 
         .mountain-2 {
-          fill: rgb(28, 28, 28);
+          fill: rgb(24, 24, 32);
         }
 
         .mountain-3 {
-          fill: rgb(24, 24, 24);
+          fill: rgb(20, 20, 28);
+        }
+
+        .mountain-4 {
+          fill: rgb(16, 16, 24);
         }
 
         .progress-path {
@@ -199,6 +235,7 @@ export default function MountainProgress({
           stroke-width: 3;
           filter: drop-shadow(0 0 8px rgba(255, 200, 120, 0.8));
           transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+          stroke-linecap: round;
         }
 
         .milestone {
@@ -206,37 +243,27 @@ export default function MountainProgress({
         }
 
         .milestone-marker {
-          fill: rgb(80, 80, 80);
-          r: 6;
+          fill: rgb(80, 80, 96);
           transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .milestone.achieved .milestone-marker {
           fill: rgb(255, 200, 120);
           filter: drop-shadow(0 0 6px rgba(255, 200, 120, 0.8));
-          r: 8;
         }
 
         .milestone-label {
-          font-size: 14px;
-          fill: rgb(120, 120, 120);
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          opacity: 0.8;
+          font-size: 13px;
+          fill: rgb(140, 140, 160);
+          font-weight: 500;
+          letter-spacing: 0.05em;
           transition: all 0.3s ease;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
         }
 
         .milestone.achieved .milestone-label {
-          fill: rgb(220, 220, 220);
-          opacity: 1;
-        }
-
-        .current-level-label {
-          font-size: 18px;
           fill: rgb(255, 200, 120);
-          font-weight: 700;
-          filter: drop-shadow(0 0 6px rgba(255, 200, 120, 0.6));
-          letter-spacing: 0.1em;
+          filter: drop-shadow(0 0 6px rgba(255, 200, 120, 0.4));
         }
 
         .progress-stats {
