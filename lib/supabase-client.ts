@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { User } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 
 // For development only - remove in production
 const DEV_USER: User = {
@@ -8,11 +8,11 @@ const DEV_USER: User = {
   user_metadata: { 
     first_name: 'Ben',
     last_name: 'Shapiro',
-    onboarded: false
+    onboarded: false // Set to false to test onboarding flow
   },
   aud: 'authenticated',
   created_at: new Date().toISOString(),
-  email: 'benshapyro@gmail.com',
+  email: 'dev@gynergy.app', // Use this email to trigger dev mode
   phone: '619-218-3483',
   role: 'authenticated',
   updated_at: new Date().toISOString(),
@@ -24,6 +24,12 @@ const DEV_USER: User = {
   identities: []
 };
 
+type DevSession = {
+  user: User;
+  access_token: string;
+  refresh_token: string;
+};
+
 export function createClient() {
   const client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,28 +38,71 @@ export function createClient() {
 
   // For development only - remove in production
   if (process.env.NODE_ENV === 'development') {
+    let listeners: ((event: string, session: DevSession | null) => void)[] = [];
+    let devSession: DevSession | null = null;
+
     return {
       ...client,
       auth: {
         ...client.auth,
-        getUser: async () => ({ data: { user: DEV_USER }, error: null }),
-        getSession: async () => ({ 
-          data: { 
-            session: {
+        // Simulate getting current user
+        getUser: async () => ({ data: { user: devSession?.user || null }, error: null }),
+        // Simulate getting current session
+        getSession: async () => ({ data: { session: devSession }, error: null }),
+        // Simulate magic link sign in
+        signInWithOtp: async ({ email }: { email: string }) => {
+          // Only auto-sign in with dev email
+          if (email === 'dev@gynergy.app') {
+            // Simulate a delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Create dev session
+            devSession = {
               user: DEV_USER,
               access_token: 'fake-token',
               refresh_token: 'fake-refresh-token'
-            }
-          }, 
+            };
+
+            // Notify listeners of sign in
+            listeners.forEach(listener => listener('SIGNED_IN', devSession));
+            
+            return { data: { user: DEV_USER }, error: null };
+          }
+          
+          // For other emails, use real Supabase client
+          return client.auth.signInWithOtp({ email });
+        },
+        // Simulate sign out
+        signOut: async () => {
+          devSession = null;
+          listeners.forEach(listener => listener('SIGNED_OUT', null));
+          return { error: null };
+        },
+        // Handle auth state changes
+        onAuthStateChange: (callback: (event: string, session: DevSession | null) => void) => {
+          listeners.push(callback);
+          return {
+            data: { subscription: { unsubscribe: () => {
+              listeners = listeners.filter(l => l !== callback);
+            }}},
+            error: null
+          };
+        },
+        // Simulate code exchange
+        exchangeCodeForSession: async () => ({ 
+          data: { session: devSession }, 
           error: null 
         }),
-        signInWithOtp: async () => ({ data: { user: DEV_USER }, error: null }),
-        signOut: async () => ({ error: null }),
-        onAuthStateChange: client.auth.onAuthStateChange.bind(client.auth),
-        exchangeCodeForSession: async () => ({ data: { session: { user: DEV_USER } }, error: null }),
+        // Update user metadata
         updateUser: async (attributes: { data: Record<string, any> }) => {
-          DEV_USER.user_metadata = { ...DEV_USER.user_metadata, ...attributes.data };
-          return { data: { user: DEV_USER }, error: null };
+          if (devSession?.user) {
+            devSession.user.user_metadata = {
+              ...devSession.user.user_metadata,
+              ...attributes.data
+            };
+            return { data: { user: devSession.user }, error: null };
+          }
+          return { data: { user: null }, error: new Error('No user session') };
         }
       },
       // Preserve all other client methods
