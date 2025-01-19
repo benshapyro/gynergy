@@ -1,6 +1,6 @@
 # Gynergy Journal App
 
-A Next.js 14 application for daily journaling with Supabase backend.
+A Next.js 14 application for daily journaling with Supabase backend and OpenAI Vision API integration.
 
 ## 🚀 Quick Start
 
@@ -12,10 +12,18 @@ A Next.js 14 application for daily journaling with Supabase backend.
    ```
 
 2. **Environment Setup**
-   Create `.env.local`:
+   Copy `.env.template` to `.env.local` and fill in:
    ```bash
+   # Required for Supabase
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+   # Required for OpenAI Vision API
+   OPENAI_API_KEY=your-openai-api-key
+
+   # Development Configuration
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
 
 3. **Database Setup**
@@ -39,14 +47,12 @@ Development mode includes features to make testing easier:
    - Test user details:
      ```typescript
      {
-       id: 'test-user-123',
+       id: 'a1b2c3d4-e5f6-4321-8901-abcdef123456',
        email: 'test@example.com',
        name: 'Test User'
      }
      ```
-   - Configured in:
-     - `lib/supabase-client.ts`
-     - `lib/supabase-server.ts`
+   - Configured in `lib/supabase-client.ts`
 
 2. **Test Data**
    - Sample data available in `docs/test_data.sql`
@@ -64,9 +70,7 @@ Before deploying to production:
      ```typescript
      // For development only - remove in production
      ```
-   - These blocks are in:
-     - `lib/supabase-client.ts`
-     - `lib/supabase-server.ts`
+   - These blocks are in `lib/supabase-client.ts`
 
 2. **Authentication**
    - Real Supabase authentication will be active
@@ -75,6 +79,7 @@ Before deploying to production:
 
 3. **Environment Variables**
    - Set production Supabase credentials in your hosting platform
+   - Set production OpenAI API key
    - Never commit `.env.local`
    - Use production-grade secrets
 
@@ -83,15 +88,15 @@ Before deploying to production:
 ```
 gynergy/
 ├── app/                    # Next.js pages and layouts
-│   ├── api/              # API routes
-│   ├── auth/             # Authentication pages
-│   ├── dashboard/        # Main journal interface
-│   ├── history/         # Journal history view
-│   ├── leaderboard/     # Points leaderboard
-│   ├── profile/         # User profile pages
-│   ├── layout.tsx       # Root layout
-│   ├── page.tsx         # Home page
-│   └── providers.tsx    # App providers
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main journal interface
+│   ├── history/          # Journal history view
+│   ├── leaderboard/      # Points leaderboard
+│   ├── profile/          # User profile pages
+│   ├── layout.tsx        # Root layout
+│   ├── page.tsx          # Home page
+│   └── providers.tsx     # App providers
 ├── components/            # React components
 │   ├── journal/          # Journal components
 │   │   ├── DailyAction.tsx
@@ -122,7 +127,7 @@ Users earn points automatically:
 - Evening journal: 5 points
 - Gratitude action: 10 points
 
-Points are tracked through database triggers.
+Points are tracked through database triggers and updated automatically when entries are completed.
 
 ## 🔒 Security Notes
 
@@ -136,6 +141,15 @@ Points are tracked through database triggers.
    - Users can only access their own data
    - Proper authentication required
    - Session management enforced
+
+## 🤖 OpenAI Vision API Integration
+
+The app uses OpenAI's Vision API to:
+- Process handwritten journal entries
+- Extract text from journal photos
+- Organize content into structured format
+
+Ensure your OpenAI API key has access to the Vision API endpoints.
 
 ## 🤝 Contributing
 
