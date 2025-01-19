@@ -19,28 +19,35 @@ interface JournalEntry {
 export function JournalStatus({ type }: JournalStatusProps) {
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchJournalStatus() {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('journal_entries')
-        .select('id, morning_completed, evening_completed, morning_points, evening_points')
-        .eq('date', new Date().toISOString().split('T')[0])
-        .single();
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('id, morning_completed, evening_completed, morning_points, evening_points')
+          .eq('date', new Date().toISOString().split('T')[0])
+          .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        console.error('Error fetching journal status:', error);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching journal status:', error);
+          setError(error.message);
+          return;
+        }
+
+        setEntry(data);
+      } catch (err) {
+        console.error('Error:', err);
+        setError('Failed to fetch journal status');
+      } finally {
+        setLoading(false);
       }
-
-      setEntry(data);
-      setLoading(false);
     }
 
     fetchJournalStatus();
   }, []);
-
-  if (loading) return <div>Loading...</div>;
 
   const isCompleted = type === 'morning' ? entry?.morning_completed : entry?.evening_completed;
   const points = type === 'morning' ? entry?.morning_points : entry?.evening_points;
@@ -48,6 +55,31 @@ export function JournalStatus({ type }: JournalStatusProps) {
   const description = type === 'morning'
     ? 'Start your day with intention'
     : 'Reflect on your day';
+
+  if (loading) {
+    return (
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <div className="animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div className="h-8 bg-gray-200 rounded w-32"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          <p className="mt-1 text-sm text-red-500">Error: {error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
