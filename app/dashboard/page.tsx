@@ -179,6 +179,8 @@ export default function DashboardPage() {
           backdrop-filter: blur(10px);
           overflow: hidden;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          height: auto;
+          min-height: 200px;
         }
 
         .card:hover {
@@ -188,27 +190,28 @@ export default function DashboardPage() {
         }
 
         .card-content {
-          padding: 2rem;
+          padding: 1.75rem;
           height: 100%;
           display: flex;
           flex-direction: column;
+          justify-content: space-between;
+          gap: 1.5rem;
         }
 
         .card-header {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.25rem;
+          gap: 0.75rem;
         }
 
         .card-icon {
-          font-size: 2rem;
+          font-size: 1.75rem;
           line-height: 1;
           filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
         }
 
         .card-header h3 {
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           font-weight: 600;
           color: rgb(220, 220, 220);
           margin: 0;
@@ -217,30 +220,29 @@ export default function DashboardPage() {
 
         .card p {
           color: rgb(160, 160, 160);
-          font-size: 1rem;
+          font-size: 0.9375rem;
           line-height: 1.5;
           margin: 0;
-          flex-grow: 1;
         }
 
         .card-footer {
-          margin-top: 2rem;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.75rem;
         }
 
         .action-button {
           background: rgb(255, 200, 120);
           color: rgb(32, 32, 32);
           border: none;
-          padding: 1rem 1.5rem;
+          padding: 0.875rem 1.25rem;
           border-radius: 12px;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: space-between;
           font-weight: 600;
+          font-size: 0.9375rem;
           letter-spacing: 0.05em;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -255,7 +257,7 @@ export default function DashboardPage() {
         }
 
         .arrow {
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -265,9 +267,10 @@ export default function DashboardPage() {
 
         .time-indicator {
           color: rgb(140, 140, 140);
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           text-align: center;
           letter-spacing: 0.05em;
+          padding-bottom: 0.25rem;
         }
 
         .leaderboard-section {
@@ -304,14 +307,24 @@ export default function DashboardPage() {
 
           .card-content {
             padding: 1.5rem;
+            gap: 1.25rem;
           }
 
           .card-icon {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
           }
 
           .card-header h3 {
-            font-size: 1.125rem;
+            font-size: 1rem;
+          }
+
+          .card p {
+            font-size: 0.875rem;
+          }
+
+          .action-button {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
           }
 
           .quote-section {
