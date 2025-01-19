@@ -1,64 +1,138 @@
--- Insert test daily quote
+-- Insert a test daily quote
 INSERT INTO daily_quotes (quote, author, active_date)
-VALUES ('The only way to do great work is to love what you do.', 'Steve Jobs', CURRENT_DATE);
-
--- Insert test daily action
-INSERT INTO daily_actions (action_text, tip_text, active_date)
-VALUES ('Write a thank you note to someone who helped you recently', 'Be specific about how their actions impacted you', CURRENT_DATE);
-
--- Insert test user (if using auth.users table)
-INSERT INTO auth.users (id, email)
-VALUES ('a1b2c3d4-e5f6-4321-8901-abcdef123456', 'test@example.com')
-ON CONFLICT (id) DO NOTHING;
-
--- Test journal entry creation
-INSERT INTO journal_entries (id, user_id, date)
 VALUES (
-  uuid_generate_v4(),
-  'a1b2c3d4-e5f6-4321-8901-abcdef123456',
-  CURRENT_DATE
+    'The only way to do great work is to love what you do.',
+    'Steve Jobs',
+    CURRENT_DATE
+) ON CONFLICT (active_date) DO NOTHING;
+
+-- Insert a test daily action
+INSERT INTO daily_actions (action_text, tip_text, active_date)
+VALUES (
+    'Write a thank you note to someone who helped you recently',
+    'Be specific about how their actions impacted you positively',
+    CURRENT_DATE
+) ON CONFLICT (active_date) DO NOTHING;
+
+-- Insert test user if not exists
+INSERT INTO auth.users (id, email, raw_user_meta_data)
+VALUES (
+    'a1b2c3d4-e5f6-4321-8901-abcdef123456',
+    'test@example.com',
+    '{"name": "Test User", "total_points": 0, "streak_count": 0}'::jsonb
+) ON CONFLICT (id) DO NOTHING;
+
+-- Create a journal entry for today
+INSERT INTO journal_entries (
+    user_id,
+    date,
+    morning_completed,
+    morning_mood_score,
+    morning_mood_factors,
+    morning_reflection,
+    morning_points,
+    evening_completed,
+    evening_mood_score,
+    evening_mood_factors,
+    evening_reflection,
+    evening_points,
+    gratitude_action_completed,
+    gratitude_action_points
+)
+VALUES (
+    'a1b2c3d4-e5f6-4321-8901-abcdef123456',
+    CURRENT_DATE,
+    true,
+    8,
+    ARRAY['Good sleep', 'Excited about project'],
+    'Feeling energized and ready to tackle the day!',
+    5,
+    false,
+    null,
+    null,
+    null,
+    0,
+    false,
+    0
+) ON CONFLICT (user_id, date) DO UPDATE SET
+    morning_completed = EXCLUDED.morning_completed,
+    morning_mood_score = EXCLUDED.morning_mood_score,
+    morning_mood_factors = EXCLUDED.morning_mood_factors,
+    morning_reflection = EXCLUDED.morning_reflection,
+    morning_points = EXCLUDED.morning_points;
+
+-- Insert affirmations
+WITH journal_id AS (
+    SELECT id FROM journal_entries 
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    AND date = CURRENT_DATE
+)
+INSERT INTO affirmations (journal_entry_id, affirmation)
+VALUES 
+    ((SELECT id FROM journal_id), 'I am capable of achieving great things today'),
+    ((SELECT id FROM journal_id), 'I choose to be positive and productive'),
+    ((SELECT id FROM journal_id), 'I am grateful for this new day'),
+    ((SELECT id FROM journal_id), 'I trust in my abilities'),
+    ((SELECT id FROM journal_id), 'I embrace all possibilities');
+
+-- Insert gratitude and excitement items
+WITH journal_id AS (
+    SELECT id FROM journal_entries 
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    AND date = CURRENT_DATE
+)
+INSERT INTO gratitude_excitement (journal_entry_id, type, content)
+VALUES 
+    ((SELECT id FROM journal_id), 'gratitude', 'Grateful for my supportive family'),
+    ((SELECT id FROM journal_id), 'gratitude', 'Thankful for good health'),
+    ((SELECT id FROM journal_id), 'gratitude', 'Appreciative of this beautiful day'),
+    ((SELECT id FROM journal_id), 'excitement', 'Looking forward to completing my project'),
+    ((SELECT id FROM journal_id), 'excitement', 'Excited about weekend plans'),
+    ((SELECT id FROM journal_id), 'excitement', 'Can''t wait to learn something new');
+
+-- Insert gratitude action response
+WITH journal_id AS (
+    SELECT id FROM journal_entries 
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    AND date = CURRENT_DATE
+)
+INSERT INTO gratitude_action_responses (
+    journal_entry_id,
+    action_completed,
+    morning_reflection,
+    evening_reflection,
+    obstacles
+)
+VALUES (
+    (SELECT id FROM journal_id),
+    false,
+    'I will write a heartfelt note to my mentor today',
+    null,
+    null
 );
 
--- Get the journal entry id for further insertions
-DO $$
-DECLARE
-    journal_id UUID;
-BEGIN
-    SELECT id INTO journal_id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' AND date = CURRENT_DATE;
+-- Insert free flow entry
+WITH journal_id AS (
+    SELECT id FROM journal_entries 
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    AND date = CURRENT_DATE
+)
+INSERT INTO free_flow (journal_entry_id, content)
+VALUES (
+    (SELECT id FROM journal_id),
+    'Today I feel particularly inspired to tackle new challenges. There are so many possibilities ahead, and I''m ready to embrace them all.'
+);
 
-    -- Insert test morning affirmations
-    INSERT INTO morning_affirmations (journal_entry_id, affirmation_text, affirmation_order)
-    VALUES 
-        (journal_id, 'I am capable of achieving my goals', 1),
-        (journal_id, 'I am filled with energy and positivity', 2),
-        (journal_id, 'I am grateful for this new day', 3),
-        (journal_id, 'I am making progress every day', 4),
-        (journal_id, 'I am surrounded by opportunities', 5);
-
-    -- Insert test gratitude items
-    INSERT INTO gratitude_excitement (journal_entry_id, type, item_text, item_order)
-    VALUES 
-        (journal_id, 'gratitude', 'Grateful for my family', 1),
-        (journal_id, 'gratitude', 'Grateful for good health', 2),
-        (journal_id, 'gratitude', 'Grateful for this opportunity', 3),
-        (journal_id, 'excitement', 'Excited about the new project', 1),
-        (journal_id, 'excitement', 'Looking forward to learning', 2),
-        (journal_id, 'excitement', 'Cant wait to see progress', 3);
-
-    -- Insert gratitude action response
-    INSERT INTO gratitude_action_responses (journal_entry_id, action_completed, morning_reflection)
-    VALUES (journal_id, true, 'I will write a thank you note to my mentor');
-
-    -- Update morning section
-    UPDATE journal_entries 
-    SET 
-        morning_time = CURRENT_TIME,
-        morning_mood_score = 4,
-        morning_mood_text = 'Feeling energetic and positive',
-        morning_mood_factors = 'Good sleep and exercise',
-        mantra = 'Today is full of possibilities',
-        morning_completed = true,
-        morning_points = 5
-    WHERE id = journal_id;
-END $$; 
+-- Insert dream magic entries
+WITH journal_id AS (
+    SELECT id FROM journal_entries 
+    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    AND date = CURRENT_DATE
+)
+INSERT INTO dream_magic (journal_entry_id, statement_text, statement_order, action_steps)
+VALUES 
+    ((SELECT id FROM journal_id), 'I will complete my major project milestone', 1, 'Break down the next feature into small tasks'),
+    ((SELECT id FROM journal_id), 'I will maintain a healthy work-life balance', 2, 'Set clear boundaries for work hours'),
+    ((SELECT id FROM journal_id), 'I will learn a new programming concept', 3, 'Spend 30 minutes on tutorials'),
+    ((SELECT id FROM journal_id), 'I will help someone else grow', 4, 'Share knowledge in team meetings'),
+    ((SELECT id FROM journal_id), 'I will practice mindfulness', 5, 'Take meditation breaks'); 
