@@ -46,7 +46,11 @@ export function createClient() {
         signInWithOtp: async () => ({ data: { user: DEV_USER }, error: null }),
         signOut: async () => ({ error: null }),
         onAuthStateChange: client.auth.onAuthStateChange.bind(client.auth),
-        exchangeCodeForSession: async () => ({ data: { session: { user: DEV_USER } }, error: null })
+        exchangeCodeForSession: async () => ({ data: { session: { user: DEV_USER } }, error: null }),
+        updateUser: async (attributes: { data: Record<string, any> }) => {
+          DEV_USER.user_metadata = { ...DEV_USER.user_metadata, ...attributes.data };
+          return { data: { user: DEV_USER }, error: null };
+        }
       },
       // Preserve all other client methods
       from: client.from.bind(client),
