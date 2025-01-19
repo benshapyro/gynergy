@@ -1,85 +1,6 @@
-# Gynergy Journal
+# Gynergy Journal App
 
-A daily journaling application for personal growth and energy tracking.
-
-## Setup
-
-1. Clone the repository
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables in `.env`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-```
-
-4. Initialize the database:
-- Run the schema.sql file in your Supabase SQL editor
-- This will create all necessary tables and functions
-
-## Database Structure
-
-The application uses Supabase (PostgreSQL) with the following main tables:
-- `journal_entries`: Main table for daily journal entries
-- `morning_affirmations`: Daily affirmations
-- `gratitude_excitement`: Gratitude and excitement items
-- `gratitude_action_responses`: Daily gratitude action tracking
-- `free_flow`: Free-form journal entries
-- `dream_magic`: Dream visualization and action steps
-- `daily_quotes`: Daily inspirational quotes
-- `daily_actions`: Daily gratitude actions
-
-## Authentication
-
-Uses NextAuth.js with Supabase adapter for authentication:
-- Email authentication (default)
-- Support for additional providers can be added
-
-## Points System
-
-Users can earn points through:
-- Morning journal completion (5 points)
-- Evening journal completion (5 points)
-- Daily gratitude action completion (10 points)
-
-Points are automatically calculated through database triggers.
-
-## 🌟 Key Features
-
-- ✍️ **Smart Journaling**
-  - Daily text entries with rich text formatting
-  - Photo-to-text conversion using OCR
-  - Automatic deletion of photos after processing (privacy-first)
-
-- 🏆 **Engagement & Gamification**
-  - Daily streaks for consistent journaling
-  - Points system for various activities
-  - Community leaderboard
-  
-- 📱 **User Experience**
-  - Responsive design for all devices
-  - Dark/light mode support
-  - Intuitive calendar and list views for history
-
-- 🔒 **Security & Privacy**
-  - NextAuth.js authentication
-  - Secure data storage with Supabase
-  - Ephemeral photo processing
-
-## 🛠️ Tech Stack
-
-- **Frontend**: Next.js 13 (App Router), TailwindCSS, TypeScript
-- **Backend**: Next.js API Routes, Supabase
-- **Authentication**: NextAuth.js
-- **Database**: PostgreSQL (via Supabase)
-- **OCR**: OpenAI Vision API (configurable)
-- **Deployment**: Vercel (recommended)
+A Next.js 14 application for daily journaling with Supabase backend.
 
 ## 🚀 Quick Start
 
@@ -91,188 +12,139 @@ Points are automatically calculated through database triggers.
    ```
 
 2. **Environment Setup**
-   Create a `.env.local` file:
+   Create `.env.local`:
    ```bash
-   # Authentication
-   NEXTAUTH_SECRET=your-jwt-secret
-   NEXTAUTH_URL=http://localhost:3000
-
-   # Supabase
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_DATABASE_URL=your-connection-string
-
-   # OCR (Optional)
-   OPENAI_API_KEY=your-api-key
    ```
 
 3. **Database Setup**
-   ```bash
-   # If using the provided schema
-   npm run db:setup
-   
-   # Or manually create tables in Supabase dashboard
-   # See schema.sql in /docs folder
-   ```
+   - Run `docs/schema.sql` in your Supabase SQL Editor
+   - For testing, run `docs/test_data.sql` to create sample data
 
 4. **Development**
    ```bash
    npm run dev
    ```
-   Visit http://localhost:3000
+   Visit http://localhost:3000/dashboard
 
-5. **Production**
-   ```bash
-   npm run build
-   npm run start
-   ```
+## 🔑 Development vs Production
 
-## 📚 Documentation
+### Development Mode
+Development mode includes features to make testing easier:
 
-### Database Schema
+1. **Authentication Bypass**
+   - Automatic authentication with a test user
+   - No need to sign in
+   - Test user details:
+     ```typescript
+     {
+       id: 'test-user-123',
+       email: 'test@example.com',
+       name: 'Test User'
+     }
+     ```
+   - Configured in:
+     - `lib/supabase-client.ts`
+     - `lib/supabase-server.ts`
 
-Our PostgreSQL database (via Supabase) consists of the following key tables:
+2. **Test Data**
+   - Sample data available in `docs/test_data.sql`
+   - Includes:
+     - Daily quotes
+     - Gratitude actions
+     - Journal entries
+     - Affirmations
 
-#### Core Tables
-- **users**
-  - Extends NextAuth's user table
-  - Tracks streak_count and total_points
-  - Protected by Row Level Security (RLS)
+### Production Mode
+Before deploying to production:
 
-- **journal_entries**
-  - Main table for daily entries
-  - Contains morning and evening sections
-  - Tracks points and mood scores
-  - Unique constraint on user_id + date
+1. **Remove Development Code**
+   - Delete all code blocks marked with:
+     ```typescript
+     // For development only - remove in production
+     ```
+   - These blocks are in:
+     - `lib/supabase-client.ts`
+     - `lib/supabase-server.ts`
 
-#### Journal Components
-- **affirmations**
-  - Linked to journal_entries
-  - Types: 'morning' or 'dream_magic'
-  - Maximum 5 affirmations per entry
+2. **Authentication**
+   - Real Supabase authentication will be active
+   - Users must sign in with email
+   - Magic link authentication flow
 
-- **gratitude_excitement**
-  - Tracks both gratitude and excitement items
-  - Maximum 3 items per type per entry
-  - Linked to journal_entries
+3. **Environment Variables**
+   - Set production Supabase credentials in your hosting platform
+   - Never commit `.env.local`
+   - Use production-grade secrets
 
-- **gratitude_actions**
-  - Daily action tracking
-  - Includes completion status and reflections
-  - Points awarded for completion
-
-- **free_flow**
-  - Unstructured journal content
-  - Linked to journal_entries
-
-#### Content Tables
-- **daily_quotes**
-  - System-managed inspirational quotes
-  - One quote per active_date
-  - Readable by all users
-
-- **daily_actions**
-  - System-managed gratitude actions
-  - Includes tips and guidance
-  - One action per active_date
-
-### Security Features
-- Row Level Security (RLS) enabled on all user-related tables
-- Custom policies ensure users can only access their own data
-- Public tables (daily_quotes, daily_actions) are read-only
-
-### Project Structure
+## 📁 Project Structure
 
 ```
 gynergy/
-├── app/                    # Next.js 14 App Router directory
-│   ├── (auth)/            # Authentication related pages
-│   │   ├── login/         # Login page and components
-│   │   └── register/      # Registration page and components
-│   ├── (dashboard)/       # Main application interface
-│   │   ├── page.tsx       # Dashboard home page
-│   │   └── components/    # Dashboard-specific components
-│   │       ├── JournalEditor.tsx    # Main journaling interface
-│   │       └── PhotoUploadOCR.tsx   # Photo upload and OCR
-│   ├── api/               # Backend API routes
-│   │   ├── auth/          # Authentication endpoints
-│   │   │   └── [...nextauth]  # NextAuth configuration
-│   │   ├── journal/       # Journal CRUD operations
-│   │   │   ├── save/      # Save journal entries
-│   │   │   └── upload/    # Handle photo uploads
-│   │   ├── leaderboard/   # Leaderboard endpoints
-│   │   │   ├── streaks/   # Streak calculations
-│   │   │   └── points/    # Points tracking
-│   │   └── user/          # User profile management
-│   └── layout.tsx         # Root layout component
-├── lib/                   # Shared utilities and services
-│   ├── supabaseClient.ts  # Supabase client configuration
-│   ├── authOptions.ts     # NextAuth configuration
-│   └── ocrService.ts      # OCR service implementation
-├── public/                # Static assets
-└── docs/                  # Additional documentation
-    └── schema.sql         # Complete database schema
+├── app/                    # Next.js pages and layouts
+│   ├── api/              # API routes
+│   ├── auth/             # Authentication pages
+│   ├── dashboard/        # Main journal interface
+│   ├── history/         # Journal history view
+│   ├── leaderboard/     # Points leaderboard
+│   ├── profile/         # User profile pages
+│   ├── layout.tsx       # Root layout
+│   ├── page.tsx         # Home page
+│   └── providers.tsx    # App providers
+├── components/            # React components
+│   ├── journal/          # Journal components
+│   │   ├── DailyAction.tsx
+│   │   ├── DailyQuote.tsx
+│   │   └── JournalStatus.tsx
+│   └── auth/             # Auth components
+├── lib/                  # Utilities
+│   ├── supabase-client.ts  # Client-side Supabase
+│   └── supabase-server.ts  # Server-side Supabase
+└── docs/                 # Documentation & SQL
+    ├── schema.sql        # Database schema
+    └── test_data.sql     # Test data
 ```
 
-### Key Files
+## 💾 Database Schema
 
-#### Configuration Files
-- `next.config.js` - Next.js configuration
-  - Configures build settings
-  - Defines API routes
-  - Sets environment variables
+Key tables:
+- `journal_entries` - Daily entries with points tracking
+- `affirmations` - Morning affirmations
+- `gratitude_excitement` - Gratitude and excitement items
+- `gratitude_actions` - Daily actions and responses
+- `daily_quotes` - Inspirational quotes
 
-- `tsconfig.json` - TypeScript configuration
-  - Configures path aliases
-  - Sets compilation options
-  - Defines included/excluded files
+## 🎮 Points System
 
-#### Core Components
-- `app/layout.tsx` - Root layout
-  - Implements authentication provider
-  - Sets up global styles
-  - Manages navigation structure
+Users earn points automatically:
+- Morning journal: 5 points
+- Evening journal: 5 points
+- Gratitude action: 10 points
 
-- `app/dashboard/components/JournalEditor.tsx`
-  - Main journaling interface
-  - Handles form state
-  - Manages entry submissions
+Points are tracked through database triggers.
 
-#### Service Files
-- `lib/supabaseClient.ts`
-  - Configures Supabase connection
-  - Sets up real-time subscriptions
-  - Manages database interactions
+## 🔒 Security Notes
 
-- `lib/authOptions.ts`
-  - Configures NextAuth providers
-  - Sets up authentication callbacks
-  - Manages session handling
+1. **Development Mode**
+   - Authentication is bypassed
+   - Test user has full access
+   - No real security enforced
 
-- `lib/ocrService.ts`
-  - Handles image processing
-  - Integrates with OpenAI Vision
-  - Manages OCR results
+2. **Production Mode**
+   - Row Level Security (RLS) active
+   - Users can only access their own data
+   - Proper authentication required
+   - Session management enforced
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Next.js team for the amazing framework
-- Supabase for the powerful backend platform
-- OpenAI for the Vision API
-- All contributors and users of Gynergy
-
----
-
-Made with ❤️ by the Gynergy team
+MIT License - see [LICENSE](LICENSE)

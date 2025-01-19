@@ -1,12 +1,10 @@
 // /app/providers.tsx
-// This file provides a SessionProvider to wrap the entire application.
-// It's used to ensure that session data is available in client components. 
+// This file provides a wrapper for the entire application.
 
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import React from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return <>{children}</>;
 }
