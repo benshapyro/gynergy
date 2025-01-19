@@ -5,11 +5,15 @@ import { User } from '@supabase/supabase-js'
 const DEV_USER: User = {
   id: 'a1b2c3d4-e5f6-4321-8901-abcdef123456', // Valid UUID format
   app_metadata: {},
-  user_metadata: { name: 'Test User' },
+  user_metadata: { 
+    first_name: 'Ben',
+    last_name: 'Shapiro',
+    onboarded: false
+  },
   aud: 'authenticated',
   created_at: new Date().toISOString(),
-  email: 'test@example.com',
-  phone: '',
+  email: 'benshapyro@gmail.com',
+  phone: '619-218-3483',
   role: 'authenticated',
   updated_at: new Date().toISOString(),
   confirmed_at: new Date().toISOString(),

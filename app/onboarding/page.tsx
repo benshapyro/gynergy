@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase-client';
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,8 @@ export default function OnboardingPage() {
 
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
-          name,
+          first_name: firstName,
+          last_name: lastName,
           onboarded: true,
         }
       });
@@ -50,13 +52,28 @@ export default function OnboardingPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">What should we call you?</label>
+            <label htmlFor="firstName">First Name</label>
             <input
               type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Enter your first name"
+              required
+              minLength={2}
+              maxLength={50}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="lastName">Last Name</label>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Enter your last name"
               required
               minLength={2}
               maxLength={50}
@@ -69,7 +86,7 @@ export default function OnboardingPage() {
           <button 
             type="submit" 
             className="submit-button"
-            disabled={isLoading || !name.trim()}
+            disabled={isLoading || !firstName.trim() || !lastName.trim()}
           >
             {isLoading ? 'Setting Up...' : 'Start My Journey'}
           </button>
