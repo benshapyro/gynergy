@@ -75,15 +75,47 @@ export function DailyQuote() {
   }
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <blockquote className="text-xl italic font-semibold text-gray-900">
-          <p>"{quote.quote}"</p>
-          {quote.author && (
-            <footer className="mt-3 text-gray-500">— {quote.author}</footer>
-          )}
-        </blockquote>
-      </div>
+    <div className="quote-container">
+      <p className="quote-text">{quote.quote}</p>
+      <p className="quote-author">— {quote.author}</p>
+
+      <style jsx>{`
+        .quote-container {
+          position: relative;
+          z-index: 1;
+        }
+
+        .quote-text {
+          position: relative;
+          font-size: 2rem;
+          font-weight: 600;
+          line-height: 1.4;
+          color: rgb(240, 240, 240);
+          text-align: center;
+          letter-spacing: -0.02em;
+          margin-bottom: 1.5rem;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quote-author {
+          font-size: 1.125rem;
+          color: rgb(160, 160, 160);
+          text-align: center;
+          font-weight: 500;
+          letter-spacing: 0.05em;
+          opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+          .quote-text {
+            font-size: 1.5rem;
+          }
+
+          .quote-author {
+            font-size: 1rem;
+          }
+        }
+      `}</style>
     </div>
   );
 } 

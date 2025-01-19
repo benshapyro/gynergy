@@ -36,20 +36,6 @@ export default function DashboardPage() {
           currentPoints={75}
           milestones={MILESTONES}
         />
-        <div className="progress-stats">
-          <div className="stat">
-            <span className="label">Current Level</span>
-            <span className="value">First Rest</span>
-          </div>
-          <div className="stat">
-            <span className="label">Progress</span>
-            <span className="value">25%</span>
-          </div>
-          <div className="stat">
-            <span className="label">Points to Next Level</span>
-            <span className="value">25 pts</span>
-          </div>
-        </div>
       </div>
 
       {/* Journal Cards */}
@@ -114,215 +100,163 @@ export default function DashboardPage() {
 
       <style jsx>{`
         .dashboard {
+          padding: 2rem;
           max-width: 1200px;
           margin: 0 auto;
-          padding: 2rem;
-          padding-top: 7rem; /* Increased padding to account for navigation */
-          min-height: 100vh;
-          background: transparent; /* Remove background as it's handled by layout */
         }
 
         .header {
           text-align: center;
-          margin-bottom: 3rem;
-          opacity: 0;
-          animation: fadeIn 0.5s ease forwards;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          margin-bottom: 2rem;
         }
 
         .header h1 {
-          font-size: 2.5rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          background: linear-gradient(
-            to right,
-            var(--color-text) 0%,
-            var(--color-gray-400) 100%
-          );
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 2rem;
+          color: var(--color-text);
           margin-bottom: 0.5rem;
         }
 
         .subtitle {
           color: var(--color-gray-400);
-          font-size: 1.1rem;
-          letter-spacing: 0.05em;
         }
 
         .quote-section {
           position: relative;
-          margin-bottom: 3rem;
-          text-align: center;
-          font-weight: bold;
-          font-size: 1.5rem;
-          padding: 3rem;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: var(--radius-lg);
+          margin: 4rem auto;
+          padding: 3rem 4rem;
+          max-width: 900px;
+          background: linear-gradient(
+            to bottom right,
+            rgba(32, 32, 32, 0.8),
+            rgba(24, 24, 24, 0.8)
+          );
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          overflow: hidden;
+          box-shadow: 
+            0 4px 24px rgba(0, 0, 0, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.05);
+          transform: translateZ(0);
         }
 
         .quote-marks {
           position: absolute;
-          top: -1rem;
+          top: -2rem;
           left: 2rem;
           font-size: 8rem;
-          opacity: 0.1;
-          font-family: serif;
-          color: var(--color-primary);
+          font-family: "Georgia", serif;
+          background: linear-gradient(
+            45deg,
+            rgb(255, 200, 120),
+            rgb(255, 160, 80)
+          );
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          opacity: 0.15;
+          line-height: 1;
+          pointer-events: none;
+          filter: drop-shadow(0 4px 12px rgba(255, 200, 120, 0.2));
         }
 
         .mountain-section {
-          margin: 4rem 0;
-          padding: 2rem;
-          background: rgba(255, 255, 255, 0.02);
-          border-radius: var(--radius-lg);
-          border: 1px solid rgba(255, 255, 255, 0.03);
-        }
-
-        .progress-stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
-          margin-top: 2rem;
-          padding-top: 2rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .stat {
-          text-align: center;
-        }
-
-        .stat .label {
-          display: block;
-          color: var(--color-gray-400);
-          font-size: 0.9rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .stat .value {
-          display: block;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--color-primary);
+          height: 400px;
+          margin-bottom: 2rem;
+          border-radius: 16px;
+          overflow: hidden;
         }
 
         .journal-cards {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 2rem;
-          margin: 4rem 0;
+          margin: 3rem 0;
         }
 
         .card {
-          position: relative;
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
+          background: rgba(32, 32, 32, 0.6);
+          border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: var(--radius-lg);
+          backdrop-filter: blur(10px);
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-4px);
+          border-color: rgba(255, 200, 120, 0.1);
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(to right, var(--color-primary), var(--color-accent));
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        .card:hover::before {
-          opacity: 1;
         }
 
         .card-content {
           padding: 2rem;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .card-header {
           display: flex;
           align-items: center;
           gap: 1rem;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
         }
 
         .card-icon {
-          font-size: 1.5rem;
+          font-size: 2rem;
+          line-height: 1;
+          filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
         }
 
-        .card h3 {
+        .card-header h3 {
           font-size: 1.25rem;
           font-weight: 600;
-          color: var(--color-text);
-          letter-spacing: 0.05em;
+          color: rgb(220, 220, 220);
           margin: 0;
+          letter-spacing: 0.05em;
         }
 
         .card p {
-          color: var(--color-gray-400);
-          margin-bottom: 2rem;
-          line-height: 1.6;
+          color: rgb(160, 160, 160);
+          font-size: 1rem;
+          line-height: 1.5;
+          margin: 0;
+          flex-grow: 1;
         }
 
         .card-footer {
+          margin-top: 2rem;
           display: flex;
           flex-direction: column;
           gap: 1rem;
         }
 
         .action-button {
-          width: 100%;
-          background: linear-gradient(
-            135deg,
-            var(--color-primary) 0%,
-            var(--color-accent) 100%
-          );
-          color: white;
+          background: rgb(255, 200, 120);
+          color: rgb(32, 32, 32);
           border: none;
-          padding: 0.75rem 1.5rem;
-          border-radius: var(--radius-md);
+          padding: 1rem 1.5rem;
+          border-radius: 12px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          font-weight: 500;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          font-size: 0.9rem;
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
+          justify-content: space-between;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .action-button:hover {
+          background: rgb(255, 220, 160);
           transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(var(--color-primary-rgb), 0.4);
         }
 
-        .action-button .arrow {
-          transition: transform 0.3s ease;
+        .action-button:active {
+          transform: translateY(0);
+        }
+
+        .arrow {
+          font-size: 1.25rem;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .action-button:hover .arrow {
@@ -330,9 +264,10 @@ export default function DashboardPage() {
         }
 
         .time-indicator {
-          font-size: 0.8rem;
-          color: var(--color-gray-500);
+          color: rgb(140, 140, 140);
+          font-size: 0.875rem;
           text-align: center;
+          letter-spacing: 0.05em;
         }
 
         .leaderboard-section {
@@ -352,37 +287,42 @@ export default function DashboardPage() {
           letter-spacing: 0.1em;
         }
 
-        @media (max-width: 1024px) {
-          .journal-cards {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .progress-stats {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
         @media (max-width: 768px) {
+          .dashboard {
+            padding: 1rem;
+          }
+
+          .mountain-section {
+            height: 300px;
+          }
+
           .journal-cards {
             grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin: 2rem 0;
           }
 
-          .progress-stats {
-            grid-template-columns: 1fr;
-            gap: 1rem;
+          .card-content {
+            padding: 1.5rem;
           }
 
-          .header h1 {
-            font-size: 2rem;
+          .card-icon {
+            font-size: 1.75rem;
+          }
+
+          .card-header h3 {
+            font-size: 1.125rem;
           }
 
           .quote-section {
-            font-size: 1.25rem;
+            margin: 3rem 1rem;
             padding: 2rem;
           }
 
           .quote-marks {
             font-size: 6rem;
+            top: -1.5rem;
+            left: 1.5rem;
           }
         }
       `}</style>
