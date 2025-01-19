@@ -1,0 +1,8 @@
+.dashboard-layout {
+  min-height: 100vh;
+  background: linear-gradient(
+    180deg,
+    var(--color-background) 0%,
+    var(--color-gray-900) 100%
+  );
+} 
