@@ -45,7 +45,7 @@ export function createClient() {
         }),
         signInWithOtp: async () => ({ data: { user: DEV_USER }, error: null }),
         signOut: async () => ({ error: null }),
-        onAuthStateChange: client.auth.onAuthStateChange
+        onAuthStateChange: client.auth.onAuthStateChange.bind(client.auth)
       },
       // Preserve all other client methods
       from: client.from.bind(client),

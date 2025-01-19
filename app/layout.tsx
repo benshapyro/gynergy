@@ -2,11 +2,9 @@
 // This file defines the global layout for the application.
 
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const inter = Inter({ subsets: ["latin"] });
+import { Navigation } from "@/components/layout/Navigation";
 
 // Global layout that wraps the entire application.
 // We apply NextAuthProvider to ensure session is available in client components.
@@ -22,8 +20,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+      <body>
+        <Providers>
+          <Navigation />
+          <main className="main-content">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );
