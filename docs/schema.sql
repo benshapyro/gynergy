@@ -1,88 +1,17 @@
+-- Drop existing tables in correct order (respecting foreign keys)
+DROP TABLE IF EXISTS "morning_affirmations" CASCADE;
+DROP TABLE IF EXISTS "gratitude_excitement" CASCADE;
+DROP TABLE IF EXISTS "gratitude_action_responses" CASCADE;
+DROP TABLE IF EXISTS "free_flow" CASCADE;
+DROP TABLE IF EXISTS "dream_magic" CASCADE;
+DROP TABLE IF EXISTS "journal_entries" CASCADE;
+DROP TABLE IF EXISTS "daily_quotes" CASCADE;
+DROP TABLE IF EXISTS "daily_actions" CASCADE;
+
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Set up auth schema (if not already done by Supabase)
-CREATE SCHEMA IF NOT EXISTS auth;
-
--- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE affirmations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gratitude_excitement ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gratitude_actions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE free_flow ENABLE ROW LEVEL SECURITY;
-
--- Create policies
--- Users can only read/write their own data
-CREATE POLICY "Users can read own data" ON users
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own data" ON users
-    FOR UPDATE USING (auth.uid() = id);
-
--- Journal entries policies
-CREATE POLICY "Users can CRUD own journal entries" ON journal_entries
-    FOR ALL USING (auth.uid() = user_id);
-
--- Affirmations policies
-CREATE POLICY "Users can CRUD own affirmations" ON affirmations
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM journal_entries
-            WHERE id = journal_entry_id
-            AND user_id = auth.uid()
-        )
-    );
-
--- Gratitude/excitement policies
-CREATE POLICY "Users can CRUD own gratitude items" ON gratitude_excitement
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM journal_entries
-            WHERE id = journal_entry_id
-            AND user_id = auth.uid()
-        )
-    );
-
--- Gratitude actions policies
-CREATE POLICY "Users can CRUD own gratitude actions" ON gratitude_actions
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM journal_entries
-            WHERE id = journal_entry_id
-            AND user_id = auth.uid()
-        )
-    );
-
--- Free flow policies
-CREATE POLICY "Users can CRUD own free flow entries" ON free_flow
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM journal_entries
-            WHERE id = journal_entry_id
-            AND user_id = auth.uid()
-        )
-    );
-
--- Daily quotes and actions are readable by all users
-CREATE POLICY "Anyone can read quotes" ON daily_quotes
-    FOR SELECT USING (true);
-
-CREATE POLICY "Anyone can read actions" ON daily_actions
-    FOR SELECT USING (true);
-
--- Users table (extends NextAuth's user table if using SupabaseAdapter)
-CREATE TABLE IF NOT EXISTS "users" (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    name TEXT,
-    image TEXT,  -- profile picture
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    streak_count INTEGER DEFAULT 0,
-    total_points INTEGER DEFAULT 0
-);
-
+-- Create tables first, then we'll add RLS
 -- Daily quotes table
 CREATE TABLE IF NOT EXISTS "daily_quotes" (
     id SERIAL PRIMARY KEY,
@@ -102,40 +31,47 @@ CREATE TABLE IF NOT EXISTS "daily_actions" (
 -- Main journal entries table
 CREATE TABLE IF NOT EXISTS "journal_entries" (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     date DATE NOT NULL,
+    
     -- Morning section
     morning_time TIME,
-    morning_mood_score INTEGER CHECK (morning_mood_score BETWEEN 1 AND 5),
-    morning_mood_notes TEXT,
     had_dream BOOLEAN DEFAULT FALSE,
     dream_description TEXT,
-    morning_reflection TEXT,
+    morning_mood_score INTEGER CHECK (morning_mood_score BETWEEN 1 AND 5),
+    morning_mood_text TEXT,  -- How are you feeling this morning?
+    morning_mood_factors TEXT,  -- What contributed to your mood?
+    mantra TEXT,  -- My mantra
+    morning_completed BOOLEAN DEFAULT FALSE,
+    
     -- Evening section
     evening_time TIME,
     evening_mood_score INTEGER CHECK (evening_mood_score BETWEEN 1 AND 5),
-    thought_of_day TEXT,
-    thought_impact TEXT,
-    what_went_well TEXT,
-    changes_for_tomorrow TEXT,
+    evening_mood_text TEXT,  -- How are you feeling this evening?
+    thought_of_day TEXT,  -- One unique thought/insight
+    thought_impact TEXT,  -- How this insight changes perspective
+    success_replication TEXT,  -- How to replicate success
+    change_steps TEXT,  -- Steps to make change happen
+    evening_completed BOOLEAN DEFAULT FALSE,
+    
     -- Points tracking
     morning_points INTEGER DEFAULT 0 CHECK (morning_points BETWEEN 0 AND 5),
     evening_points INTEGER DEFAULT 0 CHECK (evening_points BETWEEN 0 AND 5),
     gratitude_action_points INTEGER DEFAULT 0 CHECK (gratitude_action_points BETWEEN 0 AND 10),
     total_points INTEGER GENERATED ALWAYS AS (morning_points + evening_points + gratitude_action_points) STORED,
+    
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, date)
 );
 
--- Morning affirmations
-CREATE TABLE IF NOT EXISTS "affirmations" (
+-- Positive affirmations (morning "I am" statements)
+CREATE TABLE IF NOT EXISTS "morning_affirmations" (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
     affirmation_text TEXT NOT NULL,
     affirmation_order INTEGER CHECK (affirmation_order BETWEEN 1 AND 5),
-    type TEXT CHECK (type IN ('morning', 'dream_magic')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -149,17 +85,18 @@ CREATE TABLE IF NOT EXISTS "gratitude_excitement" (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Daily action tracking
-CREATE TABLE IF NOT EXISTS "gratitude_actions" (
+-- Gratitude action responses
+CREATE TABLE IF NOT EXISTS "gratitude_action_responses" (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
     action_completed BOOLEAN DEFAULT FALSE,
-    reflection TEXT,
-    obstacles TEXT,
+    morning_reflection TEXT,  -- Reflection & commitment
+    evening_reflection TEXT,  -- How did it make you feel
+    obstacles TEXT,  -- What obstacles did you encounter
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Free flow entries
+-- Free flow section
 CREATE TABLE IF NOT EXISTS "free_flow" (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
@@ -167,12 +104,92 @@ CREATE TABLE IF NOT EXISTS "free_flow" (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for better query performance
+-- Dream magic visualization
+CREATE TABLE IF NOT EXISTS "dream_magic" (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
+    statement_text TEXT NOT NULL,
+    statement_order INTEGER CHECK (statement_order BETWEEN 1 AND 5),
+    action_steps TEXT,  -- Small actions for tomorrow
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable Row Level Security
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE morning_affirmations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gratitude_excitement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gratitude_action_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE free_flow ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dream_magic ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_quotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_actions ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS Policies
+-- Journal entries policies
+CREATE POLICY "Users can CRUD own journal entries" ON journal_entries
+    FOR ALL USING (auth.uid() = user_id);
+
+-- Affirmations policies
+CREATE POLICY "Users can CRUD own affirmations" ON morning_affirmations
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Gratitude/excitement policies
+CREATE POLICY "Users can CRUD own gratitude items" ON gratitude_excitement
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Gratitude actions policies
+CREATE POLICY "Users can CRUD own action responses" ON gratitude_action_responses
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Free flow policies
+CREATE POLICY "Users can CRUD own free flow" ON free_flow
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Dream magic policies
+CREATE POLICY "Users can CRUD own dream magic" ON dream_magic
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Public content policies
+CREATE POLICY "Anyone can read quotes" ON daily_quotes FOR SELECT USING (true);
+CREATE POLICY "Anyone can read actions" ON daily_actions FOR SELECT USING (true);
+
+-- Create indexes
 CREATE INDEX idx_journal_entries_user_date ON journal_entries(user_id, date);
-CREATE INDEX idx_affirmations_journal_entry ON affirmations(journal_entry_id);
-CREATE INDEX idx_gratitude_excitement_journal_entry ON gratitude_excitement(journal_entry_id);
-CREATE INDEX idx_gratitude_actions_journal_entry ON gratitude_actions(journal_entry_id);
-CREATE INDEX idx_free_flow_journal_entry ON free_flow(journal_entry_id);
+CREATE INDEX idx_morning_affirmations_entry ON morning_affirmations(journal_entry_id);
+CREATE INDEX idx_gratitude_excitement_entry ON gratitude_excitement(journal_entry_id);
+CREATE INDEX idx_gratitude_responses_entry ON gratitude_action_responses(journal_entry_id);
+CREATE INDEX idx_free_flow_entry ON free_flow(journal_entry_id);
+CREATE INDEX idx_dream_magic_entry ON dream_magic(journal_entry_id);
 
 -- Function to check if morning section is complete
 CREATE OR REPLACE FUNCTION is_morning_complete(journal_entry_id UUID) 
@@ -188,15 +205,17 @@ BEGIN
         WHERE id = journal_entry_id 
         AND morning_time IS NOT NULL
         AND morning_mood_score IS NOT NULL
-        AND morning_reflection IS NOT NULL
+        AND morning_mood_text IS NOT NULL
+        AND morning_mood_factors IS NOT NULL
+        AND mantra IS NOT NULL
     ) THEN
         RETURN FALSE;
     END IF;
 
     -- Check affirmations (need all 5)
     SELECT COUNT(*) INTO morning_affirmation_count
-    FROM affirmations
-    WHERE journal_entry_id = journal_entry_id AND type = 'morning';
+    FROM morning_affirmations
+    WHERE journal_entry_id = journal_entry_id;
     
     -- Check gratitude items (need all 3)
     SELECT COUNT(*) INTO gratitude_count
@@ -223,10 +242,11 @@ BEGIN
         WHERE id = journal_entry_id 
         AND evening_time IS NOT NULL
         AND evening_mood_score IS NOT NULL
+        AND evening_mood_text IS NOT NULL
         AND thought_of_day IS NOT NULL
         AND thought_impact IS NOT NULL
-        AND what_went_well IS NOT NULL
-        AND changes_for_tomorrow IS NOT NULL
+        AND success_replication IS NOT NULL
+        AND change_steps IS NOT NULL
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -254,7 +274,7 @@ BEGIN
         evening_complete := is_evening_complete(entry_id);
         
         SELECT action_completed INTO action_complete
-        FROM gratitude_actions
+        FROM gratitude_action_responses
         WHERE journal_entry_id = entry_id;
 
         -- Update points
