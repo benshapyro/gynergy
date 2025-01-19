@@ -1,15 +1,17 @@
 // /lib/authOptions.ts
 // Configures NextAuth with a SupabaseAdapter or another approach. Below is a generic example using credential-based login plus a SupabaseAdapter. Adjust providers, database, or JWT strategy as needed.
 
-import { SupabaseAdapter } from "@next-auth/supabase-adapter";
-import CredentialsProvider from "next-auth/providers/credentials";
+import { createClient } from '@supabase/supabase-js'
 import type { AuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  adapter: SupabaseAdapter({
-    databaseUrl: process.env.SUPABASE_DATABASE_URL as string,
-  }),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -17,24 +19,22 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      // Example naive credentials check:
-      async authorize(credentials, req) {
-        // In production, you'd verify credentials against
-        // your existing user table or do a RPC call to Supabase.
-        // If valid, return user object with id, name, email, etc.
-        // If invalid, return null.
-
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        
+        // Use Supabase Auth directly
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        });
 
-        // Example: always accept if password is "test"
-        if (credentials.password === "test") {
-          return {
-            id: "temp_user_id",
-            email: credentials.email,
-            name: "Test User",
-          };
-        }
-        return null;
+        if (error || !data.user) return null;
+        
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name || null,
+        };
       },
     }),
   ],
