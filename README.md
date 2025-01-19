@@ -1,8 +1,54 @@
-# Gynergy Member Portal
+# Gynergy Journal
 
-![Gynergy Logo](public/logo.png)
+A daily journaling application for personal growth and energy tracking.
 
-A **production-ready** MVP of the Gynergy Member Portal - a comprehensive platform for daily journaling, community engagement, and personal growth tracking.
+## Setup
+
+1. Clone the repository
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables in `.env`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+4. Initialize the database:
+- Run the schema.sql file in your Supabase SQL editor
+- This will create all necessary tables and functions
+
+## Database Structure
+
+The application uses Supabase (PostgreSQL) with the following main tables:
+- `journal_entries`: Main table for daily journal entries
+- `morning_affirmations`: Daily affirmations
+- `gratitude_excitement`: Gratitude and excitement items
+- `gratitude_action_responses`: Daily gratitude action tracking
+- `free_flow`: Free-form journal entries
+- `dream_magic`: Dream visualization and action steps
+- `daily_quotes`: Daily inspirational quotes
+- `daily_actions`: Daily gratitude actions
+
+## Authentication
+
+Uses NextAuth.js with Supabase adapter for authentication:
+- Email authentication (default)
+- Support for additional providers can be added
+
+## Points System
+
+Users can earn points through:
+- Morning journal completion (5 points)
+- Evening journal completion (5 points)
+- Daily gratitude action completion (10 points)
+
+Points are automatically calculated through database triggers.
 
 ## 🌟 Key Features
 

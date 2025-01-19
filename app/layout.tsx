@@ -1,17 +1,18 @@
 // /app/layout.tsx
 // This file defines the global layout for the application.
 
-import "./globals.css";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { NextAuthProvider } from "./providers";
+import "./globals.css";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
 // Global layout that wraps the entire application.
 // We apply NextAuthProvider to ensure session is available in client components.
-export const metadata = {
-  title: "Gynergy Member Portal",
-  description: "Empower members to sustain growth through journaling and accountability."
+export const metadata: Metadata = {
+  title: "Gynergy Journal",
+  description: "Your daily journal for growth and energy",
 };
 
 export default function RootLayout({
@@ -22,10 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <NextAuthProvider>
-          {/* You can add global nav / header here if desired */}
-          {children}
-        </NextAuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
