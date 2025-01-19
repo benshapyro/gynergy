@@ -15,11 +15,18 @@ VALUES (
 ) ON CONFLICT (active_date) DO NOTHING;
 
 -- Insert test user if not exists
-INSERT INTO auth.users (id, email, raw_user_meta_data)
+INSERT INTO auth.users (id, email, phone, raw_user_meta_data)
 VALUES (
     'a1b2c3d4-e5f6-4321-8901-abcdef123456',
-    'test@example.com',
-    '{"name": "Test User", "total_points": 0, "streak_count": 0}'::jsonb
+    'benshapyro@gmail.com',
+    '619-218-3483',
+    jsonb_build_object(
+        'first_name', 'Ben',
+        'last_name', 'Shapiro',
+        'onboarded', true,
+        'total_points', 0,
+        'streak_count', 0
+    )
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Create a journal entry for today

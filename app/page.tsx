@@ -1,11 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase-client';
 
-export default function HomePage() {
+export default function LandingPage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'info' | 'error' }>({ text: '', type: 'info' });
+
+  useEffect(() => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        // Check if user is onboarded
+        const isOnboarded = session?.user?.user_metadata?.onboarded;
+        router.push(isOnboarded ? '/dashboard' : '/onboarding');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -13,25 +32,20 @@ export default function HomePage() {
     setMessage({ text: '', type: 'info' });
 
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error);
+      if (error) throw error;
 
       setMessage({
-        text: data.message,
+        text: 'Check your email for the magic link. You can stay on this page.',
         type: 'info'
       });
-      setEmail('');
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
       setMessage({
         text: 'Error sending login link. Please try again.',
         type: 'error'
@@ -42,180 +56,145 @@ export default function HomePage() {
   };
 
   return (
-    <div className="landing-page">
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1>WELCOME TO GYNERGY JOURNAL</h1>
-          <p className="hero-subtitle">Your Journey of Growth and Self-Discovery Begins Here</p>
-          
-          <div className="auth-container">
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="input-group">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email to begin"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={isLoading}
-                className="sign-in-button"
-              >
-                {isLoading ? 'One moment...' : 'Continue →'}
-              </button>
-              {message.text && (
-                <p className={`auth-message ${message.type}`}>
-                  {message.text}
-                </p>
-              )}
-            </form>
+    <div className="landing">
+      <div className="auth-container">
+        <h1>Welcome to Your Journey</h1>
+        <p className="subtitle">Begin your path to mindful growth</p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Enter your email to start or continue</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              disabled={isLoading}
+            />
           </div>
-        </div>
+
+          {message.text && (
+            <div className={`message ${message.type}`}>
+              {message.text}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={isLoading || !email.trim()}
+          >
+            {isLoading ? 'Sending...' : 'Start My Journey'}
+          </button>
+        </form>
       </div>
 
       <style jsx>{`
-        .landing-page {
-          min-height: calc(100vh - 64px);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .hero-section {
-          flex: 1;
+        .landing {
+          min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: var(--spacing-3xl) var(--spacing-md);
+          padding: var(--spacing-lg);
           background: linear-gradient(
             to bottom,
-            transparent,
+            var(--color-background),
             var(--color-gray-900)
           );
         }
 
-        .hero-content {
-          max-width: 600px;
+        .auth-container {
+          background: var(--color-gray-800);
+          padding: var(--spacing-xl);
+          border-radius: var(--radius-lg);
+          width: 100%;
+          max-width: 480px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+          color: var(--color-text);
+          font-size: 2rem;
+          margin-bottom: var(--spacing-xs);
           text-align: center;
         }
 
-        .hero-content h1 {
-          font-size: 3.5rem;
-          margin-bottom: var(--spacing-md);
-          background: linear-gradient(
-            to right,
-            var(--color-text),
-            var(--color-primary)
-          );
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          line-height: 1.1;
+        .subtitle {
+          color: var(--color-gray-400);
+          text-align: center;
+          margin-bottom: var(--spacing-xl);
         }
 
-        .hero-subtitle {
-          font-size: 1.25rem;
+        .form-group {
+          margin-bottom: var(--spacing-lg);
+        }
+
+        label {
+          display: block;
           color: var(--color-gray-300);
-          margin-bottom: var(--spacing-2xl);
-          line-height: 1.5;
+          margin-bottom: var(--spacing-xs);
         }
 
-        .auth-container {
-          background: rgba(38, 38, 38, 0.5);
-          backdrop-filter: blur(10px);
-          border: 1px solid var(--color-gray-800);
-          border-radius: 16px;
-          padding: var(--spacing-xl);
-          margin-top: var(--spacing-2xl);
-        }
-
-        .auth-form {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-          max-width: 400px;
-          margin: 0 auto;
-        }
-
-        .input-group {
-          position: relative;
-        }
-
-        .input-group input {
+        input {
           width: 100%;
-          padding: var(--spacing-md) var(--spacing-lg);
-          font-size: 1rem;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid var(--color-gray-700);
-          border-radius: 8px;
+          padding: var(--spacing-sm);
+          background: var(--color-gray-700);
+          border: 2px solid var(--color-gray-600);
+          border-radius: var(--radius-md);
           color: var(--color-text);
-          transition: all var(--transition-normal);
-        }
-
-        .input-group input:focus {
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 2px rgba(212, 193, 165, 0.1);
-        }
-
-        .input-group input:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .sign-in-button {
-          width: 100%;
-          padding: var(--spacing-md) var(--spacing-lg);
           font-size: 1rem;
-          background: var(--color-primary);
-          color: var(--color-background);
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all var(--transition-normal);
+          transition: border-color 0.2s;
         }
 
-        .sign-in-button:hover:not(:disabled) {
-          background: var(--color-accent);
-          transform: translateY(-2px);
+        input:focus {
+          outline: none;
+          border-color: var(--color-primary);
         }
 
-        .sign-in-button:disabled {
+        input:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }
 
-        .auth-message {
-          font-size: 0.875rem;
-          margin-top: var(--spacing-sm);
+        .message {
+          margin-bottom: var(--spacing-md);
+          padding: var(--spacing-sm);
+          border-radius: var(--radius-md);
+          text-align: center;
+        }
+
+        .message.info {
+          background: var(--color-info-bg);
+          color: var(--color-info);
+        }
+
+        .message.error {
+          background: var(--color-error-bg);
+          color: var(--color-error);
+        }
+
+        .submit-button {
+          width: 100%;
           padding: var(--spacing-sm) var(--spacing-md);
-          border-radius: 6px;
-          background: rgba(0, 0, 0, 0.2);
+          background: var(--color-primary);
+          color: white;
+          border: none;
+          border-radius: var(--radius-md);
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
         }
 
-        .auth-message.info {
-          color: var(--color-primary);
-          border: 1px solid var(--color-primary);
+        .submit-button:hover:not(:disabled) {
+          background: var(--color-primary-dark);
         }
 
-        .auth-message.error {
-          color: #ef4444;
-          border: 1px solid #ef4444;
-        }
-
-        @media (max-width: 768px) {
-          .hero-content h1 {
-            font-size: 2.5rem;
-          }
-
-          .hero-subtitle {
-            font-size: 1.125rem;
-          }
-
-          .auth-container {
-            padding: var(--spacing-lg);
-          }
+        .submit-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
