@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { LoginButton } from '../auth/LoginButton';
+import LoginButton from '../auth/LoginButton';
 
 export function Navigation() {
   const pathname = usePathname();
@@ -12,7 +12,9 @@ export function Navigation() {
       <div className="container">
         <div className="nav-content">
           <a href="/" className="logo">GYNERGY</a>
-          {!isLandingPage && <LoginButton />}
+          <div style={{ position: 'relative', zIndex: 1000 }}>
+            {!isLandingPage && <LoginButton />}
+          </div>
         </div>
       </div>
 
@@ -28,12 +30,17 @@ export function Navigation() {
           border-bottom: 1px solid var(--color-gray-800);
         }
 
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1rem;
+        }
+
         .nav-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
           height: 64px;
-          padding: 0 var(--spacing-md);
         }
 
         .logo {
