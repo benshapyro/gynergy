@@ -85,82 +85,128 @@ A **production-ready** MVP of the Gynergy Member Portal - a comprehensive platfo
 
 ### Database Schema
 
-Key tables in the Supabase database:
+Our PostgreSQL database (via Supabase) consists of the following key tables:
 
-- `users`: User profiles and authentication
-- `journal_entries`: Daily journal entries
-- `streaks`: User activity streaks
-- `points`: Point accumulation and history
+#### Core Tables
+- **users**
+  - Extends NextAuth's user table
+  - Tracks streak_count and total_points
+  - Protected by Row Level Security (RLS)
 
-See `docs/schema.sql` for complete schema.
+- **journal_entries**
+  - Main table for daily entries
+  - Contains morning and evening sections
+  - Tracks points and mood scores
+  - Unique constraint on user_id + date
 
-### API Routes
+#### Journal Components
+- **affirmations**
+  - Linked to journal_entries
+  - Types: 'morning' or 'dream_magic'
+  - Maximum 5 affirmations per entry
 
-- `/api/journal/*`: Journal entry management
-- `/api/leaderboard/*`: Streak and point rankings
-- `/api/user/*`: User profile operations
-- `/api/auth/*`: Authentication endpoints
+- **gratitude_excitement**
+  - Tracks both gratitude and excitement items
+  - Maximum 3 items per type per entry
+  - Linked to journal_entries
+
+- **gratitude_actions**
+  - Daily action tracking
+  - Includes completion status and reflections
+  - Points awarded for completion
+
+- **free_flow**
+  - Unstructured journal content
+  - Linked to journal_entries
+
+#### Content Tables
+- **daily_quotes**
+  - System-managed inspirational quotes
+  - One quote per active_date
+  - Readable by all users
+
+- **daily_actions**
+  - System-managed gratitude actions
+  - Includes tips and guidance
+  - One action per active_date
+
+### Security Features
+- Row Level Security (RLS) enabled on all user-related tables
+- Custom policies ensure users can only access their own data
+- Public tables (daily_quotes, daily_actions) are read-only
 
 ### Project Structure
 
 ```
 gynergy/
-├── app/                  # Next.js 13 App Router directory
-│   ├── (auth)/          # Authentication pages (login, register)
-│   ├── (dashboard)/     # Main app interface and journal editor
-│   ├── api/             # Backend API routes for all functionality
-│   │   ├── auth/        # Authentication API endpoints
-│   │   ├── journal/     # Journal entry management endpoints
-│   │   ├── leaderboard/ # Streak and points ranking endpoints
-│   │   └── user/        # User profile management endpoints
-│   └── ...             # Other app pages (history, profile, etc.)
-├── lib/                 # Shared utilities and services
-│   ├── supabaseClient.ts   # Supabase database client setup
-│   ├── authOptions.ts      # NextAuth configuration
-│   └── ocrService.ts       # OCR service implementation
-├── public/              # Static assets (images, icons)
-├── docs/               # Documentation and database schema
-└── prisma/             # Database schema and migrations
+├── app/                    # Next.js 14 App Router directory
+│   ├── (auth)/            # Authentication related pages
+│   │   ├── login/         # Login page and components
+│   │   └── register/      # Registration page and components
+│   ├── (dashboard)/       # Main application interface
+│   │   ├── page.tsx       # Dashboard home page
+│   │   └── components/    # Dashboard-specific components
+│   │       ├── JournalEditor.tsx    # Main journaling interface
+│   │       └── PhotoUploadOCR.tsx   # Photo upload and OCR
+│   ├── api/               # Backend API routes
+│   │   ├── auth/          # Authentication endpoints
+│   │   │   └── [...nextauth]  # NextAuth configuration
+│   │   ├── journal/       # Journal CRUD operations
+│   │   │   ├── save/      # Save journal entries
+│   │   │   └── upload/    # Handle photo uploads
+│   │   ├── leaderboard/   # Leaderboard endpoints
+│   │   │   ├── streaks/   # Streak calculations
+│   │   │   └── points/    # Points tracking
+│   │   └── user/          # User profile management
+│   └── layout.tsx         # Root layout component
+├── lib/                   # Shared utilities and services
+│   ├── supabaseClient.ts  # Supabase client configuration
+│   ├── authOptions.ts     # NextAuth configuration
+│   └── ocrService.ts      # OCR service implementation
+├── public/                # Static assets
+└── docs/                  # Additional documentation
+    └── schema.sql         # Complete database schema
 ```
 
 ### Key Files
 
-- `.env.local` - Environment variables for local development
+#### Configuration Files
 - `next.config.js` - Next.js configuration
-- `package.json` - Project dependencies and scripts
+  - Configures build settings
+  - Defines API routes
+  - Sets environment variables
+
 - `tsconfig.json` - TypeScript configuration
-- `requirements.txt` - Python dependencies (if any)
+  - Configures path aliases
+  - Sets compilation options
+  - Defines included/excluded files
 
-### Important Directories
+#### Core Components
+- `app/layout.tsx` - Root layout
+  - Implements authentication provider
+  - Sets up global styles
+  - Manages navigation structure
 
-#### `/app` - Application Core
-Contains all pages, components, and API routes using Next.js 13's App Router architecture. Each subdirectory represents a route in the application.
+- `app/dashboard/components/JournalEditor.tsx`
+  - Main journaling interface
+  - Handles form state
+  - Manages entry submissions
 
-#### `/lib` - Shared Libraries
-Houses reusable utilities, database clients, and service implementations:
-- `supabaseClient.ts`: Configures and exports the Supabase client
-- `authOptions.ts`: NextAuth.js configuration for authentication
-- `ocrService.ts`: Handles OCR processing for journal photo uploads
+#### Service Files
+- `lib/supabaseClient.ts`
+  - Configures Supabase connection
+  - Sets up real-time subscriptions
+  - Manages database interactions
 
-#### `/app/api` - Backend Endpoints
-RESTful API routes that handle:
-- User authentication and session management
-- Journal entry CRUD operations
-- Leaderboard calculations and rankings
-- User profile updates
+- `lib/authOptions.ts`
+  - Configures NextAuth providers
+  - Sets up authentication callbacks
+  - Manages session handling
 
-#### `/app/(auth)` - Authentication
-Protected routes and authentication-related components:
-- Login page with email/password
-- Registration flow
-- Password reset functionality
-
-#### `/app/(dashboard)` - Main Application
-Core application features:
-- Journal entry editor
-- Photo upload interface
-- Daily streak tracking
-- Points visualization
+- `lib/ocrService.ts`
+  - Handles image processing
+  - Integrates with OpenAI Vision
+  - Manages OCR results
 
 ## 🤝 Contributing
 
