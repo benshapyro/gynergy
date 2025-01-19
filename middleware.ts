@@ -1,10 +1,15 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-url', request.url)
+
+  // Create an unmodified response
+  const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   })
 
@@ -16,14 +21,14 @@ export async function middleware(request: NextRequest) {
         get(name: string) {
           return request.cookies.get(name)?.value
         },
-        set(name: string, value: string, options: CookieOptions) {
+        set(name: string, value: string, options: any) {
           response.cookies.set({
             name,
             value,
             ...options,
           })
         },
-        remove(name: string, options: CookieOptions) {
+        remove(name: string, options: any) {
           response.cookies.set({
             name,
             value: '',
@@ -36,21 +41,18 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  // If user is not signed in and the current path is not / or /auth/callback
-  // redirect the user to /
-  if (!session && !["/", "/auth/callback"].includes(request.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  // If user is signed in and the current path is /
-  // redirect the user to /dashboard
-  if (session && request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // If there's no session and we're trying to access a protected route
+  if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const redirectUrl = new URL('/', request.url)
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/onboarding', '/profile/:path*', '/history/:path*', '/leaderboard/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/profile/:path*',
+  ],
 } 

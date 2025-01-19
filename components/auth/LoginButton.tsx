@@ -1,80 +1,71 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
+import { useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
 
-export function LoginButton() {
+export default function LoginButton() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    // Check current auth status
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-
-    getCurrentUser();
-
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+    // Initial auth check
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+    };
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event, 'Session:', session);
+      setUser(session?.user ?? null);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear any app state
+        if (typeof window !== 'undefined') {
+          window.localStorage.clear();
+        }
+        // Force navigation to home
+        window.location.href = '/';
+      }
     });
 
-    // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  const handleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: 'test@example.com', // In production, you'd want to get this from an input
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      alert('Check your email for the login link!');
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error sending login link!');
-    }
-  };
-
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
+      await supabase.auth.signOut();
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error signing out!');
+      console.error('Error signing out:', error);
     }
   };
 
-  if (loading) {
-    return <button disabled>Loading...</button>;
-  }
-
-  return user ? (
-    <button onClick={handleSignOut} className="sign-out-button">
-      Sign Out
-    </button>
-  ) : (
-    <button onClick={handleSignIn} className="sign-in-button">
-      Sign In
-    </button>
+  return (
+    <div style={{ position: 'relative', zIndex: 1000 }}>
+      <button
+        onClick={handleSignOut}
+        className={user ? 'sign-out-button' : 'sign-in-button'}
+        style={{
+          cursor: 'pointer',
+          padding: '8px 16px',
+          border: '2px solid var(--color-gray-700)',
+          borderRadius: '8px',
+          background: 'transparent',
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: 500,
+          transition: 'all 0.2s',
+          position: 'relative'
+        }}
+      >
+        {user ? 'Sign Out' : 'Sign In'}
+      </button>
+    </div>
   );
 } 

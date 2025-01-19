@@ -38,49 +38,65 @@ export function createClient() {
 
   // For development only - remove in production
   if (process.env.NODE_ENV === 'development') {
+    // Use a module-level variable to track dev session
+    const getDevSession = () => {
+      if (typeof window === 'undefined') return null;
+      const saved = window.localStorage.getItem('devSession');
+      return saved ? JSON.parse(saved) : null;
+    };
+
+    const setDevSession = (session: DevSession | null) => {
+      if (typeof window === 'undefined') return;
+      if (session) {
+        window.localStorage.setItem('devSession', JSON.stringify(session));
+      } else {
+        window.localStorage.removeItem('devSession');
+      }
+    };
+
     let listeners: ((event: string, session: DevSession | null) => void)[] = [];
-    let devSession: DevSession | null = null;
+    let devSession = getDevSession();
+
+    // Initialize session if none exists
+    if (!devSession) {
+      devSession = {
+        user: DEV_USER,
+        access_token: 'fake-token',
+        refresh_token: 'fake-refresh-token'
+      };
+      setDevSession(devSession);
+    }
 
     return {
       ...client,
       auth: {
         ...client.auth,
-        // Simulate getting current user
-        getUser: async () => ({ data: { user: devSession?.user || null }, error: null }),
-        // Simulate getting current session
-        getSession: async () => ({ data: { session: devSession }, error: null }),
-        // Simulate magic link sign in
+        getUser: async () => ({ data: { user: getDevSession()?.user || null }, error: null }),
+        getSession: async () => ({ data: { session: getDevSession() }, error: null }),
         signInWithOtp: async ({ email }: { email: string }) => {
-          // Only auto-sign in with dev email
           if (email === 'dev@gynergy.app') {
-            // Simulate a delay
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Create dev session
             devSession = {
               user: DEV_USER,
               access_token: 'fake-token',
               refresh_token: 'fake-refresh-token'
             };
-
-            // Notify listeners of sign in
+            setDevSession(devSession);
             listeners.forEach(listener => listener('SIGNED_IN', devSession));
-            
             return { data: { user: DEV_USER }, error: null };
           }
-          
-          // For other emails, use real Supabase client
           return client.auth.signInWithOtp({ email });
         },
-        // Simulate sign out
         signOut: async () => {
           devSession = null;
+          setDevSession(null);
           listeners.forEach(listener => listener('SIGNED_OUT', null));
           return { error: null };
         },
-        // Handle auth state changes
         onAuthStateChange: (callback: (event: string, session: DevSession | null) => void) => {
           listeners.push(callback);
+          // Immediately call with current session
+          callback('INITIAL', getDevSession());
           return {
             data: { subscription: { unsubscribe: () => {
               listeners = listeners.filter(l => l !== callback);
@@ -88,24 +104,23 @@ export function createClient() {
             error: null
           };
         },
-        // Simulate code exchange
         exchangeCodeForSession: async () => ({ 
-          data: { session: devSession }, 
+          data: { session: getDevSession() }, 
           error: null 
         }),
-        // Update user metadata
         updateUser: async (attributes: { data: Record<string, any> }) => {
-          if (devSession?.user) {
-            devSession.user.user_metadata = {
-              ...devSession.user.user_metadata,
+          const session = getDevSession();
+          if (session?.user) {
+            session.user.user_metadata = {
+              ...session.user.user_metadata,
               ...attributes.data
             };
-            return { data: { user: devSession.user }, error: null };
+            setDevSession(session);
+            return { data: { user: session.user }, error: null };
           }
           return { data: { user: null }, error: new Error('No user session') };
         }
       },
-      // Preserve all other client methods
       from: client.from.bind(client),
       rpc: client.rpc.bind(client),
       channel: client.channel.bind(client),
