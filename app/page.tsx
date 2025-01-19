@@ -14,12 +14,23 @@ export default function LandingPage() {
   useEffect(() => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
+      console.log('Auth event:', event, 'Session:', session);
+      if (event === 'SIGNED_IN' && session) {
         // Check if user is onboarded
         const isOnboarded = session?.user?.user_metadata?.onboarded;
         router.push(isOnboarded ? '/dashboard' : '/onboarding');
       }
     });
+
+    // Check if we already have a session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const isOnboarded = session?.user?.user_metadata?.onboarded;
+        router.push(isOnboarded ? '/dashboard' : '/onboarding');
+      }
+    };
+    checkSession();
 
     return () => {
       subscription.unsubscribe();
@@ -46,6 +57,7 @@ export default function LandingPage() {
         type: 'info'
       });
     } catch (err) {
+      console.error('Sign in error:', err);
       setMessage({
         text: 'Error sending login link. Please try again.',
         type: 'error'

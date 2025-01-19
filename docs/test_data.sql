@@ -1,3 +1,7 @@
+-- First, set your user information here
+\set user_id '''your-user-id-from-supabase''' -- Replace with your actual user ID
+\set user_email '''your-email@example.com''' -- Replace with your actual email
+
 -- Insert a test daily quote
 INSERT INTO daily_quotes (quote, author, active_date)
 VALUES (
@@ -14,20 +18,16 @@ VALUES (
     CURRENT_DATE
 ) ON CONFLICT (active_date) DO NOTHING;
 
--- Insert test user if not exists
-INSERT INTO auth.users (id, email, phone, raw_user_meta_data)
-VALUES (
-    'a1b2c3d4-e5f6-4321-8901-abcdef123456',
-    'benshapyro@gmail.com',
-    '619-218-3483',
-    jsonb_build_object(
-        'first_name', 'Ben',
-        'last_name', 'Shapiro',
-        'onboarded', true,
-        'total_points', 0,
-        'streak_count', 0
-    )
-) ON CONFLICT (id) DO NOTHING;
+-- Update user metadata
+UPDATE auth.users 
+SET raw_user_meta_data = jsonb_build_object(
+    'first_name', 'Ben',
+    'last_name', 'Shapiro',
+    'onboarded', true,
+    'total_points', 0,
+    'streak_count', 0
+)
+WHERE id = :'user_id';
 
 -- Create a journal entry for today
 INSERT INTO journal_entries (
@@ -47,7 +47,7 @@ INSERT INTO journal_entries (
     gratitude_action_points
 )
 VALUES (
-    'a1b2c3d4-e5f6-4321-8901-abcdef123456',
+    :'user_id',
     CURRENT_DATE,
     true,
     8,
@@ -71,7 +71,7 @@ VALUES (
 -- Insert affirmations
 WITH journal_id AS (
     SELECT id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    WHERE user_id = :'user_id'
     AND date = CURRENT_DATE
 )
 INSERT INTO affirmations (journal_entry_id, affirmation)
@@ -85,7 +85,7 @@ VALUES
 -- Insert gratitude and excitement items
 WITH journal_id AS (
     SELECT id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    WHERE user_id = :'user_id'
     AND date = CURRENT_DATE
 )
 INSERT INTO gratitude_excitement (journal_entry_id, type, content)
@@ -100,7 +100,7 @@ VALUES
 -- Insert gratitude action response
 WITH journal_id AS (
     SELECT id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    WHERE user_id = :'user_id'
     AND date = CURRENT_DATE
 )
 INSERT INTO gratitude_action_responses (
@@ -121,7 +121,7 @@ VALUES (
 -- Insert free flow entry
 WITH journal_id AS (
     SELECT id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    WHERE user_id = :'user_id'
     AND date = CURRENT_DATE
 )
 INSERT INTO free_flow (journal_entry_id, content)
@@ -133,7 +133,7 @@ VALUES (
 -- Insert dream magic entries
 WITH journal_id AS (
     SELECT id FROM journal_entries 
-    WHERE user_id = 'a1b2c3d4-e5f6-4321-8901-abcdef123456' 
+    WHERE user_id = :'user_id'
     AND date = CURRENT_DATE
 )
 INSERT INTO dream_magic (journal_entry_id, statement_text, statement_order, action_steps)
