@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
+import toast from 'react-hot-toast';
 
 interface MoodOption {
   value: number;
@@ -17,74 +19,123 @@ const moodOptions: MoodOption[] = [
   { value: 5, label: 'Great', emoji: '😊' }
 ];
 
+const moodFactors = [
+  'Good sleep', 'Poor sleep',
+  'Exercise', 'Healthy food',
+  'Social connection', 'Solitude',
+  'Productive work', 'Work stress',
+  'Family time', 'Personal time',
+  'Creative activity', 'Learning something new',
+  'Nature time', 'Screen time',
+  'Meditation', 'Physical discomfort',
+  'Weather', 'Other'
+];
+
 export function MorningJournal() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [mood, setMood] = useState<number | null>(null);
+  const [moodFactorSelections, setMoodFactorSelections] = useState<string[]>([]);
   const [reflection, setReflection] = useState('');
   const [affirmations, setAffirmations] = useState(['', '', '', '', '']);
   const [gratitude, setGratitude] = useState(['', '', '']);
   const [excitement, setExcitement] = useState(['', '', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const toggleMoodFactor = (factor: string) => {
+    setMoodFactorSelections(prev => 
+      prev.includes(factor)
+        ? prev.filter(f => f !== factor)
+        : [...prev, factor]
+    );
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       const supabase = createClient();
       
-      // Save journal entry
-      const { error } = await supabase
-        .from('journal_entries')
-        .insert({
-          type: 'morning',
-          mood_score: mood,
-          reflection,
-          date: new Date().toISOString().split('T')[0]
-        });
+      // Get authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('Not authenticated');
 
-      if (error) throw error;
+      const today = new Date().toISOString().split('T')[0];
+
+      // Create or update journal entry for today
+      const { data: journalEntry, error: journalError } = await supabase
+        .from('journal_entries')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          morning_completed: true,
+          morning_mood_score: mood,
+          morning_mood_factors: moodFactorSelections,
+          morning_reflection: reflection,
+          morning_points: 5, // Will be updated by trigger
+        }, {
+          onConflict: 'user_id,date'
+        })
+        .select()
+        .single();
+
+      if (journalError) throw journalError;
+      if (!journalEntry) throw new Error('Failed to create journal entry');
 
       // Save affirmations
-      await supabase
-        .from('affirmations')
-        .insert(
-          affirmations
-            .filter(a => a.trim())
-            .map(text => ({
-              text,
-              date: new Date().toISOString().split('T')[0]
-            }))
-        );
+      if (affirmations.some(a => a.trim())) {
+        const { error: affirmationsError } = await supabase
+          .from('affirmations')
+          .insert(
+            affirmations
+              .filter(a => a.trim())
+              .map(affirmation => ({
+                journal_entry_id: journalEntry.id,
+                affirmation
+              }))
+          );
 
-      // Save gratitude items
-      await supabase
-        .from('gratitude_items')
-        .insert(
-          gratitude
-            .filter(g => g.trim())
-            .map(text => ({
-              text,
-              type: 'gratitude',
-              date: new Date().toISOString().split('T')[0]
-            }))
-        );
+        if (affirmationsError) throw affirmationsError;
+      }
 
-      // Save excitement items
-      await supabase
-        .from('gratitude_items')
-        .insert(
-          excitement
-            .filter(e => e.trim())
-            .map(text => ({
-              text,
-              type: 'excitement',
-              date: new Date().toISOString().split('T')[0]
-            }))
-        );
+      // Save gratitude and excitement items
+      const gratitudeItems = gratitude
+        .filter(g => g.trim())
+        .map(content => ({
+          journal_entry_id: journalEntry.id,
+          type: 'gratitude',
+          content
+        }));
 
-      // TODO: Show success message and redirect
-    } catch (error) {
+      const excitementItems = excitement
+        .filter(e => e.trim())
+        .map(content => ({
+          journal_entry_id: journalEntry.id,
+          type: 'excitement',
+          content
+        }));
+
+      if (gratitudeItems.length > 0 || excitementItems.length > 0) {
+        const { error: itemsError } = await supabase
+          .from('gratitude_excitement')
+          .insert([...gratitudeItems, ...excitementItems]);
+
+        if (itemsError) throw itemsError;
+      }
+
+      // Call the complete_morning_entry function to update points and streak
+      const { error: completeError } = await supabase
+        .rpc('complete_morning_entry', {
+          entry_id: journalEntry.id
+        });
+
+      if (completeError) throw completeError;
+
+      toast.success('Journal entry saved successfully!');
+      router.push('/dashboard');
+    } catch (error: any) {
       console.error('Error saving journal:', error);
-      // TODO: Show error message
+      toast.error(error.message || 'Failed to save journal entry. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,7 +145,7 @@ export function MorningJournal() {
     <div className="journal-container">
       {/* Progress Steps */}
       <div className="progress-steps">
-        {[1, 2, 3, 4].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <div 
             key={s} 
             className={`step ${s === step ? 'active' : ''} ${s < step ? 'completed' : ''}`}
@@ -123,6 +174,24 @@ export function MorningJournal() {
         )}
 
         {step === 2 && (
+          <div className="mood-factors-section">
+            <h2>What's influencing your mood?</h2>
+            <p className="subtitle">Select all factors that apply</p>
+            <div className="mood-factors-grid">
+              {moodFactors.map((factor) => (
+                <button
+                  key={factor}
+                  className={`factor-button ${moodFactorSelections.includes(factor) ? 'selected' : ''}`}
+                  onClick={() => toggleMoodFactor(factor)}
+                >
+                  {factor}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
           <div className="reflection-section">
             <h2>Morning Reflection</h2>
             <p className="subtitle">Take a moment to reflect on your intentions for today</p>
@@ -135,7 +204,7 @@ export function MorningJournal() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="affirmations-section">
             <h2>Daily Affirmations</h2>
             <p className="subtitle">Write 5 positive affirmations for yourself</p>
@@ -155,7 +224,7 @@ export function MorningJournal() {
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="gratitude-section">
             <h2>Gratitude & Excitement</h2>
             <div className="gratitude-list">
@@ -204,7 +273,7 @@ export function MorningJournal() {
             Back
           </button>
         )}
-        {step < 4 ? (
+        {step < 5 ? (
           <button 
             className="nav-button next"
             onClick={() => setStep(step + 1)}
@@ -385,6 +454,40 @@ export function MorningJournal() {
           background: rgba(255, 255, 255, 0.15);
         }
 
+        .mood-factors-section {
+          text-align: center;
+        }
+
+        .mood-factors-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 1rem;
+          margin-top: 2rem;
+        }
+
+        .factor-button {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 0.75rem 1rem;
+          color: rgb(200, 200, 200);
+          font-size: 0.9375rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .factor-button:hover {
+          background: rgba(255, 255, 255, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .factor-button.selected {
+          background: rgba(255, 200, 120, 0.1);
+          border-color: rgb(255, 200, 120);
+          color: rgb(255, 200, 120);
+          transform: translateY(-2px);
+        }
+
         @media (max-width: 768px) {
           .journal-container {
             padding: 1rem;
@@ -405,6 +508,16 @@ export function MorningJournal() {
 
           h2 {
             font-size: 1.5rem;
+          }
+
+          .mood-factors-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.75rem;
+          }
+
+          .factor-button {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
           }
         }
       `}</style>

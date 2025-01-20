@@ -16,6 +16,126 @@ interface JournalEntry {
   evening_points: number;
 }
 
+interface JournalStatus {
+  morning_completed: boolean;
+  evening_completed: boolean;
+  gratitude_action_completed: boolean;
+}
+
+export function CompletionBadge({ completed }: { completed: boolean }) {
+  if (!completed) return null;
+  
+  return (
+    <div className="completion-badge">
+      <span className="checkmark">✓</span>
+      <style jsx>{`
+        .completion-badge {
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          background: rgb(255, 200, 120);
+          color: rgb(32, 32, 32);
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 0.875rem;
+          box-shadow: 
+            0 2px 8px rgba(255, 200, 120, 0.3),
+            0 0 0 2px rgba(255, 200, 120, 0.1);
+          animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .checkmark {
+          transform: translateY(-1px);
+        }
+
+        @keyframes pop {
+          0% {
+            transform: scale(0);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export function useJournalStatus() {
+  const [status, setStatus] = useState<JournalStatus>({
+    morning_completed: false,
+    evening_completed: false,
+    gratitude_action_completed: false
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const supabase = createClient();
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('morning_completed, evening_completed, gratitude_action_completed')
+          .eq('date', today)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error('Error fetching journal status:', error);
+          return;
+        }
+
+        if (data) {
+          setStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching journal status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStatus();
+
+    // Subscribe to realtime updates
+    const supabase = createClient();
+    const channel = supabase
+      .channel('journal_status')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entries',
+          filter: `date=eq.${new Date().toISOString().split('T')[0]}`
+        },
+        (payload) => {
+          const { new: newData } = payload as any;
+          if (newData) {
+            setStatus({
+              morning_completed: newData.morning_completed,
+              evening_completed: newData.evening_completed,
+              gratitude_action_completed: newData.gratitude_action_completed
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return { status, loading };
+}
+
 export function JournalStatus({ type }: JournalStatusProps) {
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [loading, setLoading] = useState(true);

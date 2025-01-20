@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { DailyQuote } from '@/components/journal/DailyQuote';
 import MountainProgress from '@/components/journal/MountainProgress';
-import { JournalStatus } from '@/components/journal/JournalStatus';
+import { useJournalStatus, CompletionBadge } from '@/components/journal/JournalStatus';
 import { DailyAction } from '@/components/journal/DailyAction';
 import Leaderboard from '@/components/journal/Leaderboard';
 
@@ -17,6 +17,7 @@ const MILESTONES = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { status, loading } = useJournalStatus();
 
   const handleStartMorningJournal = () => {
     router.push('/journal/morning');
@@ -56,6 +57,7 @@ export default function DashboardPage() {
       {/* Journal Cards */}
       <div className="journal-cards">
         <div className="card morning-card">
+          <CompletionBadge completed={status.morning_completed} />
           <div className="card-content">
             <div className="card-header">
               <span className="card-icon">🌅</span>
@@ -66,9 +68,12 @@ export default function DashboardPage() {
               <button 
                 className="action-button"
                 onClick={handleStartMorningJournal}
+                disabled={status.morning_completed}
               >
-                <span>Start morning journal</span>
-                <span className="arrow">→</span>
+                <span>
+                  {status.morning_completed ? 'Completed for today' : 'Start morning journal'}
+                </span>
+                {!status.morning_completed && <span className="arrow">→</span>}
               </button>
               <span className="time-indicator">Best before 10 AM</span>
             </div>
@@ -76,6 +81,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="card evening-card">
+          <CompletionBadge completed={status.evening_completed} />
           <div className="card-content">
             <div className="card-header">
               <span className="card-icon">🌙</span>
@@ -86,9 +92,12 @@ export default function DashboardPage() {
               <button 
                 className="action-button"
                 onClick={handleStartEveningJournal}
+                disabled={status.evening_completed}
               >
-                <span>Start evening journal</span>
-                <span className="arrow">→</span>
+                <span>
+                  {status.evening_completed ? 'Completed for today' : 'Start evening journal'}
+                </span>
+                {!status.evening_completed && <span className="arrow">→</span>}
               </button>
               <span className="time-indicator">Available after 6 PM</span>
             </div>
@@ -96,6 +105,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="card gratitude-card">
+          <CompletionBadge completed={status.gratitude_action_completed} />
           <div className="card-content">
             <div className="card-header">
               <span className="card-icon">💝</span>
@@ -106,9 +116,12 @@ export default function DashboardPage() {
               <button 
                 className="action-button"
                 onClick={handleCompleteAction}
+                disabled={status.gratitude_action_completed}
               >
-                <span>Complete action</span>
-                <span className="arrow">→</span>
+                <span>
+                  {status.gratitude_action_completed ? 'Completed for today' : 'Complete action'}
+                </span>
+                {!status.gratitude_action_completed && <span className="arrow">→</span>}
               </button>
               <span className="time-indicator">Available all day</span>
             </div>
@@ -205,6 +218,7 @@ export default function DashboardPage() {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           height: auto;
           min-height: 200px;
+          position: relative;
         }
 
         .card:hover {
@@ -312,6 +326,14 @@ export default function DashboardPage() {
           margin-bottom: 2rem;
           text-align: center;
           letter-spacing: 0.1em;
+        }
+
+        .action-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgb(160, 160, 160);
         }
 
         @media (max-width: 768px) {
