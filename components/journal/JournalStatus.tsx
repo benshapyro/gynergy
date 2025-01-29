@@ -129,7 +129,7 @@ export function useJournalStatus() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 

@@ -1,24 +1,20 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from '@/lib/supabase-server';
 
 // GET to fetch user profile
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return NextResponse.json({ error: "No user id" }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from("User")
       .select("*")
-      .eq("id", userId)
+      .eq("id", user.id)
       .single();
 
     if (error || !data) {
@@ -38,14 +34,11 @@ export async function GET() {
 // PUT to update profile
 export async function PUT(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return NextResponse.json({ error: "No user id" }, { status: 400 });
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { name, email, profilePicture } = await req.json();
@@ -57,7 +50,7 @@ export async function PUT(req: Request) {
         email,
         profile_picture: profilePicture,
       })
-      .eq("id", userId)
+      .eq("id", user.id)
       .select()
       .single();
 
