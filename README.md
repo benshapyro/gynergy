@@ -20,7 +20,7 @@
    - [5. Evening Journal Flow](#5-evening-journal-flow)
    - [6. Progress & Rewards](#6-progress--rewards)
    - [7. Additional Features](#7-additional-features)
-   - [7. History Views](#7-history-views)
+   - [8. History Views](#8-history-views)
 5. [Features](#features)
    - [Features Completed](#features-completed)
    - [Features In Progress](#features-in-progress)
@@ -252,7 +252,13 @@ Users accumulate points through journaling activities, unlocking milestones and 
 - **Streak Tracking:** Monitors daily journaling consistency.
 - **Visual Progress:** Mountains and milestones represent user progress.
 
-**Status:** **Done**
+**Missing Features:**
+- Milestone unlocking animations
+- Achievement notifications
+- Visual celebration effects for reaching milestones
+- Interactive milestone exploration
+
+**Status:** **Partially Complete**
 
 ### 7. Additional Features
 
@@ -264,9 +270,16 @@ Enhancements to improve user experience and engagement.
 - **Profile Page:** Track overall stats and personalize settings.
 - **Leaderboard:** Compare progress with the community.
 
-**Status:** **Done**
+**Missing Features:**
+- Real-time leaderboard updates
+- Detailed stats comparison
+- Social interaction features
+- Community challenges
+- Achievement badges display
 
-### 7. History Views
+**Status:** **Partially Complete**
+
+### 8. History Views
 
 **Description:**  
 Users can review their journaling history in both list and calendar formats.
@@ -291,33 +304,137 @@ Users can review their journaling history in both list and calendar formats.
 ## Features
 
 ### Features Completed
-- **User Authentication:** Secure login using Supabase and magic links.
-- **Dashboard Overview:** Visual representation of user progress.
-- **Morning & Evening Journals:** Structured journaling flows with mood tracking, reflections, affirmations, gratitude, and excitement inputs.
-- **Daily Gratitude Action:** Specific daily tasks fostering gratitude.
-- **Progress & Rewards System:** Points accumulation and milestone unlocking.
-- **History & Profile Pages:** Access to past entries and user profiles.
-- **Leaderboard Integration:** Community engagement through progress comparison.
-- **History Views (List and Calendar):** Access to journaling history in both formats.
+- **Core Authentication:** Secure login using Supabase and magic links
+- **Basic Dashboard:** Initial visual representation of user progress
+- **Morning Journal Flow:** 
+  - Mood tracking (1-10 scale)
+  - Mood factors selection
+  - Morning reflections
+  - Daily affirmations (5 entries)
+  - Gratitude items (3 entries)
+  - Excitement items (3 entries)
+- **Evening Journal Flow:**
+  - Evening mood check
+  - Day reflection
+  - Tomorrow's planning
+- **Daily Gratitude Actions:**
+  - Daily task completion
+  - Points awarding (+10 points)
+- **Basic Points System:**
+  - Morning journal (+5 points)
+  - Evening journal (+5 points)
+  - Gratitude actions (+10 points)
+- **History Views:**
+  - List view of past entries
+  - Calendar view with completion status
 
 ### Features In Progress
-- **Enhanced Mountain Visualization:** Integration of 3D elements and interactive milestones using Three.js/React Three Fiber.
-- **AI-Powered Mood Analysis:** Leveraging OpenAI for deeper mood insights.
-- **Smart Journaling Suggestions:** Personalized prompts and gratitude suggestions based on user data.
-- **Voice-to-Text with Emotion Detection:** Allowing users to input journal entries via voice with emotion analysis.
-- **Community Integration:** Developing functionalities for group challenges, mentor matching, and community-driven prompts.
-- **Achievements System:** Implementing achievement badges and daily streaks to boost engagement.
-- **Social Sharing:** Facilitating anonymous journey sharing and collaborative challenges.
+1. **Journal Enhancement:**
+   - OpenAI Vision API integration for image transcription
+   - Photo upload for journal entries
+   - Automatic points calculation
+   - Dynamic daily quotes and gratitude actions
+   - Entry review at completion
+
+2. **Mountain Progress Visualization:**
+   - 3D mountain visualization (Three.js)
+   - Interactive milestones
+   - Achievement animations
+   - Progress celebration effects
+
+3. **Leaderboard System:**
+   - Weekly activity rankings
+   - Ripple effect tracking
+   - Streak monitoring
+   - Real-time updates
+   - Position tracking
+   - Group filtering
+
+4. **Community Features:**
+   - Group messaging
+   - Private messaging
+   - Video chat integration
+   - Weekly challenges
+   - Community engagement features
 
 ### Features To Be Done
-- **Modernized UI/UX:** Implementing glass-morphism design, micro-interactions, dark/light themes, and responsive layouts.
-- **Analytics & Insights:** Developing dashboards for personal growth analytics, mood tracking visualization, and progress patterns.
-- **Gamification Enhancements:** Adding achievement badges, daily streaks, power hours for bonus points, and collaborative challenges.
-- **Performance Optimizations:** Implementing React Suspense, intelligent prefetching, bundle size optimization, and image optimization pipelines.
-- **Progressive Web App Features:** Offline support, push notifications, quick-add widgets, app shortcuts, and background sync.
-- **Accessibility Improvements:** Ensuring WCAG 2.1 Level AAA compliance, screen reader optimizations, keyboard navigation, high contrast modes, and reduced motion options.
-- **Security & Privacy Enhancements:** Implementing end-to-end encryption, privacy-focused analytics, granular sharing controls, two-factor authentication, and regular security audits.
-- **Community Features:** Facilitating anonymous journey sharing, group challenges, mentor matching, community-driven prompts, and weekly highlights.
+
+1. **Community Onboarding Flow:**
+   - Community introduction
+   - Inspiration & Gratitude
+   - Guided experiences:
+     - Meditation
+     - Highest Self discovery
+     - Personal Mantra creation
+     - Personal Creed development
+   - Feature tutorials:
+     - Community overview
+     - Daily Journal guide
+     - Points & Prizes explanation
+     - Activities introduction
+     - Ripple Effect explanation
+     - Progress tracking guide
+
+2. **Date Zero Integration:**
+   - Weekly challenges
+   - Monthly goals
+   - Community events
+   - Progress tracking
+
+3. **Enhanced Community Features:**
+   - Journal excerpt sharing
+   - Community galleries
+   - Group challenges
+   - Mentor matching
+   - Anonymous sharing
+   - Weekly highlights
+
+4. **Technical Enhancements:**
+   - UI/UX Modernization:
+     - Glass-morphism design
+     - Micro-interactions
+     - Dark/light themes
+     - Responsive layouts
+   - Analytics & Insights:
+     - Personal growth dashboards
+     - Mood tracking visualization
+     - Progress patterns
+   - Performance Optimization:
+     - React Suspense implementation
+     - Intelligent prefetching
+     - Bundle optimization
+     - Image optimization
+   - PWA Features:
+     - Offline support
+     - Push notifications
+     - Quick-add widgets
+     - App shortcuts
+     - Background sync
+   - Accessibility:
+     - WCAG 2.1 Level AAA compliance
+     - Screen reader optimization
+     - Keyboard navigation
+     - High contrast modes
+     - Reduced motion options
+   - Security & Privacy:
+     - End-to-end encryption
+     - Privacy-focused analytics
+     - Granular sharing controls
+     - Two-factor authentication
+     - Regular security audits
+
+### Priority Order
+1. Complete morning/evening journals and gratitude actions
+2. Implement mountain tracker visualization
+3. Enhance dashboard UI/UX
+4. Integrate OpenAI Vision API for image processing
+5. Develop comprehensive entry review system
+6. Build leaderboard system (weekly → ripple → streaks)
+7. Implement history and profile features
+8. Create onboarding experience
+9. Add weekly challenges
+10. Develop messaging system (group → private)
+11. Integrate video chat functionality
 
 ## Codebase Overview
 
