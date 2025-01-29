@@ -20,6 +20,7 @@
    - [5. Evening Journal Flow](#5-evening-journal-flow)
    - [6. Progress & Rewards](#6-progress--rewards)
    - [7. Additional Features](#7-additional-features)
+   - [7. History Views](#7-history-views)
 5. [Features](#features)
    - [Features Completed](#features-completed)
    - [Features In Progress](#features-in-progress)
@@ -265,6 +266,28 @@ Enhancements to improve user experience and engagement.
 
 **Status:** **Done**
 
+### 7. History Views
+
+**Description:**  
+Users can review their journaling history in both list and calendar formats.
+
+**Features:**
+- **List View:**
+  - Chronological display of journal entries
+  - Detailed view of morning and evening reflections
+  - Mood scores and factors visualization
+  - Points earned per day
+  - Gratitude action completion status
+
+- **Calendar View:**
+  - Monthly calendar interface
+  - Visual indicators for completed activities
+  - Quick overview of daily points
+  - Easy navigation between months
+  - Compact view of journaling progress
+
+**Status:** **Done**
+
 ## Features
 
 ### Features Completed
@@ -275,12 +298,16 @@ Enhancements to improve user experience and engagement.
 - **Progress & Rewards System:** Points accumulation and milestone unlocking.
 - **History & Profile Pages:** Access to past entries and user profiles.
 - **Leaderboard Integration:** Community engagement through progress comparison.
+- **History Views (List and Calendar):** Access to journaling history in both formats.
 
 ### Features In Progress
 - **Enhanced Mountain Visualization:** Integration of 3D elements and interactive milestones using Three.js/React Three Fiber.
 - **AI-Powered Mood Analysis:** Leveraging OpenAI for deeper mood insights.
 - **Smart Journaling Suggestions:** Personalized prompts and gratitude suggestions based on user data.
 - **Voice-to-Text with Emotion Detection:** Allowing users to input journal entries via voice with emotion analysis.
+- **Community Integration:** Developing functionalities for group challenges, mentor matching, and community-driven prompts.
+- **Achievements System:** Implementing achievement badges and daily streaks to boost engagement.
+- **Social Sharing:** Facilitating anonymous journey sharing and collaborative challenges.
 
 ### Features To Be Done
 - **Modernized UI/UX:** Implementing glass-morphism design, micro-interactions, dark/light themes, and responsive layouts.

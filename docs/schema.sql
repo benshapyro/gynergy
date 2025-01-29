@@ -353,16 +353,52 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION complete_evening_entry(entry_id UUID)
-RETURNS void
-SECURITY DEFINER
-SET search_path = public
-LANGUAGE plpgsql AS $$
+-- Function to complete evening entry and update points
+CREATE OR REPLACE FUNCTION complete_evening_entry(
+  entry_id UUID,
+  tomorrow_plan TEXT
+)
+RETURNS VOID AS $$
+DECLARE
+  current_points INTEGER;
+  current_streak INTEGER;
 BEGIN
-    -- Update points
-    PERFORM update_journal_points(entry_id);
+  -- Verify the entry exists and evening section is complete
+  IF NOT is_evening_complete(entry_id) THEN
+    RAISE EXCEPTION 'Evening section is not complete';
+  END IF;
+
+  -- Update tomorrow's plan
+  UPDATE journal_entries
+  SET tomorrow_plan = $2,
+      evening_points = 5
+  WHERE id = entry_id;
+
+  -- Get current points and streak
+  SELECT total_points, streak_count
+  INTO current_points, current_streak
+  FROM journal_entries
+  WHERE id = entry_id;
+
+  -- Update total points
+  UPDATE journal_entries
+  SET total_points = current_points + 5
+  WHERE id = entry_id;
+
+  -- Update user metadata with new points
+  UPDATE auth.users
+  SET raw_user_meta_data = jsonb_set(
+    COALESCE(raw_user_meta_data, '{}'::jsonb),
+    '{total_points}',
+    to_jsonb(current_points + 5)
+  )
+  WHERE id = (
+    SELECT user_id 
+    FROM journal_entries 
+    WHERE id = entry_id
+  );
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION complete_gratitude_action(entry_id UUID)
 RETURNS void
