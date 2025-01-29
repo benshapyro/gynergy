@@ -14,8 +14,11 @@ export default function LandingPage() {
   useEffect(() => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event, 'Session:', session);
+      console.log('Auth state changed:', { event, session });
       if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in, redirecting...', { 
+          isOnboarded: session?.user?.user_metadata?.onboarded 
+        });
         // Check if user is onboarded
         const isOnboarded = session?.user?.user_metadata?.onboarded;
         router.push(isOnboarded ? '/dashboard' : '/onboarding');
@@ -25,8 +28,10 @@ export default function LandingPage() {
     // Check if we already have a session
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Initial session check:', { session });
       if (session) {
         const isOnboarded = session?.user?.user_metadata?.onboarded;
+        console.log('Existing session found, redirecting...', { isOnboarded });
         router.push(isOnboarded ? '/dashboard' : '/onboarding');
       }
     };
@@ -43,19 +48,26 @@ export default function LandingPage() {
     setMessage({ text: '', type: 'info' });
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      console.log('Attempting sign in with:', { email });
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
+      console.log('Sign in response:', { data, error });
 
       if (error) throw error;
 
-      setMessage({
-        text: 'Check your email for the magic link. You can stay on this page.',
-        type: 'info'
-      });
+      // Only show the check email message in production
+      if (process.env.NODE_ENV === 'production') {
+        setMessage({
+          text: 'Check your email for the magic link. You can stay on this page.',
+          type: 'info'
+        });
+      } else {
+        console.log('Development mode - should auto sign in');
+      }
     } catch (err) {
       console.error('Sign in error:', err);
       setMessage({
