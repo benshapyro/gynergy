@@ -119,14 +119,60 @@ ALTER TABLE dream_magic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_actions ENABLE ROW LEVEL SECURITY;
 
--- Create RLS Policies
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can CRUD own journal entries" ON journal_entries;
+DROP POLICY IF EXISTS "Users can CRUD own affirmations" ON affirmations;
+DROP POLICY IF EXISTS "Users can CRUD own gratitude items" ON gratitude_excitement;
+DROP POLICY IF EXISTS "Users can CRUD own action responses" ON gratitude_action_responses;
+DROP POLICY IF EXISTS "Users can CRUD own free flow" ON free_flow;
+DROP POLICY IF EXISTS "Users can CRUD own dream magic" ON dream_magic;
+DROP POLICY IF EXISTS "Anyone can read quotes" ON daily_quotes;
+DROP POLICY IF EXISTS "Anyone can read actions" ON daily_actions;
+
+-- Create RLS Policies with granular permissions
 -- Journal entries policies
-CREATE POLICY "Users can CRUD own journal entries" ON journal_entries
-    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can read own journal entries" ON journal_entries
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own journal entries" ON journal_entries
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own journal entries" ON journal_entries
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own journal entries" ON journal_entries
+    FOR DELETE USING (auth.uid() = user_id);
 
 -- Affirmations policies
-CREATE POLICY "Users can CRUD own affirmations" ON affirmations
-    FOR ALL USING (
+CREATE POLICY "Users can read own affirmations" ON affirmations
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own affirmations" ON affirmations
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own affirmations" ON affirmations
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own affirmations" ON affirmations
+    FOR DELETE USING (
         EXISTS (
             SELECT 1 FROM journal_entries
             WHERE id = journal_entry_id
@@ -135,8 +181,35 @@ CREATE POLICY "Users can CRUD own affirmations" ON affirmations
     );
 
 -- Gratitude/excitement policies
-CREATE POLICY "Users can CRUD own gratitude items" ON gratitude_excitement
-    FOR ALL USING (
+CREATE POLICY "Users can read own gratitude items" ON gratitude_excitement
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own gratitude items" ON gratitude_excitement
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own gratitude items" ON gratitude_excitement
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own gratitude items" ON gratitude_excitement
+    FOR DELETE USING (
         EXISTS (
             SELECT 1 FROM journal_entries
             WHERE id = journal_entry_id
@@ -145,8 +218,35 @@ CREATE POLICY "Users can CRUD own gratitude items" ON gratitude_excitement
     );
 
 -- Gratitude actions policies
-CREATE POLICY "Users can CRUD own action responses" ON gratitude_action_responses
-    FOR ALL USING (
+CREATE POLICY "Users can read own action responses" ON gratitude_action_responses
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own action responses" ON gratitude_action_responses
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own action responses" ON gratitude_action_responses
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own action responses" ON gratitude_action_responses
+    FOR DELETE USING (
         EXISTS (
             SELECT 1 FROM journal_entries
             WHERE id = journal_entry_id
@@ -155,8 +255,35 @@ CREATE POLICY "Users can CRUD own action responses" ON gratitude_action_response
     );
 
 -- Free flow policies
-CREATE POLICY "Users can CRUD own free flow" ON free_flow
-    FOR ALL USING (
+CREATE POLICY "Users can read own free flow" ON free_flow
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own free flow" ON free_flow
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own free flow" ON free_flow
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own free flow" ON free_flow
+    FOR DELETE USING (
         EXISTS (
             SELECT 1 FROM journal_entries
             WHERE id = journal_entry_id
@@ -165,8 +292,8 @@ CREATE POLICY "Users can CRUD own free flow" ON free_flow
     );
 
 -- Dream magic policies
-CREATE POLICY "Users can CRUD own dream magic" ON dream_magic
-    FOR ALL USING (
+CREATE POLICY "Users can read own dream magic" ON dream_magic
+    FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM journal_entries
             WHERE id = journal_entry_id
@@ -174,9 +301,58 @@ CREATE POLICY "Users can CRUD own dream magic" ON dream_magic
         )
     );
 
--- Public content policies
+CREATE POLICY "Users can insert own dream magic" ON dream_magic
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own dream magic" ON dream_magic
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own dream magic" ON dream_magic
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM journal_entries
+            WHERE id = journal_entry_id
+            AND user_id = auth.uid()
+        )
+    );
+
+-- Public content policies (read-only)
 CREATE POLICY "Anyone can read quotes" ON daily_quotes FOR SELECT USING (true);
 CREATE POLICY "Anyone can read actions" ON daily_actions FOR SELECT USING (true);
+
+-- Create view for leaderboard that only shows necessary information
+DROP VIEW IF EXISTS public.leaderboard;
+CREATE VIEW public.leaderboard AS
+WITH user_stats AS (
+    SELECT 
+        user_id,
+        COUNT(DISTINCT date) as days_journaled,
+        SUM(total_points) as calculated_points
+    FROM journal_entries
+    GROUP BY user_id
+)
+SELECT 
+    u.id,
+    COALESCE(u.raw_user_meta_data->>'name', 'Anonymous User') as display_name,
+    COALESCE(us.calculated_points, 0) as total_points,
+    COALESCE((u.raw_user_meta_data->>'streak_count')::integer, 0) as streak_count,
+    COALESCE(us.days_journaled, 0) as days_journaled
+FROM auth.users u
+LEFT JOIN user_stats us ON u.id = us.user_id
+WHERE u.raw_user_meta_data->>'onboarded' = 'true'
+ORDER BY total_points DESC NULLS LAST;
 
 -- Create indexes
 CREATE INDEX idx_journal_entries_user_date ON journal_entries(user_id, date);
@@ -442,4 +618,39 @@ DROP TRIGGER IF EXISTS update_points_trigger ON journal_entries;
 CREATE TRIGGER update_points_trigger
     BEFORE INSERT OR UPDATE ON journal_entries
     FOR EACH ROW
-    EXECUTE FUNCTION update_journal_points(); 
+    EXECUTE FUNCTION update_journal_points();
+
+-- Add function to safely update user metadata
+CREATE OR REPLACE FUNCTION update_user_metadata(
+    user_id UUID,
+    metadata JSONB
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.uid() = user_id THEN
+        UPDATE auth.users
+        SET raw_user_meta_data = metadata
+        WHERE id = user_id;
+    END IF;
+END;
+$$;
+
+-- Add trigger to automatically update timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Add updated_at triggers to all relevant tables
+DROP TRIGGER IF EXISTS update_journal_entries_updated_at ON journal_entries;
+CREATE TRIGGER update_journal_entries_updated_at
+    BEFORE UPDATE ON journal_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column(); 
