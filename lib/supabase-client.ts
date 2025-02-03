@@ -85,6 +85,27 @@ export function createClient() {
           },
           error: null
         };
+      },
+      updateUser: async (attributes: { email?: string; password?: string; data?: Record<string, any> }) => {
+        // Update the dev user with new attributes
+        const updatedUser = {
+          ...DEV_USER,
+          ...attributes,
+          user_metadata: {
+            ...DEV_USER.user_metadata,
+            ...(attributes.data || {})
+          }
+        };
+        
+        // Create new session with updated user
+        const mockSession = createMockSession(updatedUser);
+        
+        // Trigger auth state change
+        setTimeout(() => {
+          authCallbacks.forEach(cb => cb('USER_UPDATED', mockSession));
+        }, 100);
+
+        return { data: { user: updatedUser }, error: null };
       }
     };
 
