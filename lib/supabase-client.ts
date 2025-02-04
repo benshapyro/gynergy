@@ -150,6 +150,38 @@ export function createClient() {
           data: { session: createMockSession(DEV_USER) }, 
           error: null 
         }),
+        signUp: async ({ email, password, options }: { 
+          email: string; 
+          password: string;
+          options?: { data?: Record<string, any> }
+        }) => {
+          // Create a user with the provided email and metadata
+          const mockUser = { 
+            ...DEV_USER, 
+            email,
+            user_metadata: options?.data || {}
+          };
+          const mockSession = createMockSession(mockUser);
+
+          // Trigger auth state change immediately
+          setTimeout(() => {
+            authCallbacks.forEach(cb => cb('INITIAL_SESSION', mockSession));
+          }, 100);
+
+          return { data: { user: mockUser, session: mockSession }, error: null };
+        },
+        signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
+          // Create a user with the provided email
+          const mockUser = { ...DEV_USER, email };
+          const mockSession = createMockSession(mockUser);
+
+          // Trigger auth state change immediately
+          setTimeout(() => {
+            authCallbacks.forEach(cb => cb('SIGNED_IN', mockSession));
+          }, 100);
+
+          return { data: { user: mockUser, session: mockSession }, error: null };
+        },
         signInWithOtp: async ({ email }: { email: string }) => {
           // Create a user with the provided email
           const mockUser = { ...DEV_USER, email };
@@ -187,87 +219,116 @@ export function createClient() {
           };
         }
       },
+      channel: (name: string) => {
+        console.log('Creating mock channel:', name);
+        const channelInstance = {
+          on: (event: string, config: any, callback?: Function) => {
+            console.log('Subscribing to event:', event, 'with config:', config);
+            return channelInstance;
+          },
+          subscribe: async () => {
+            console.log('Mock subscription created');
+            return channelInstance;
+          },
+          unsubscribe: async () => {
+            console.log('Mock unsubscribe called');
+            return channelInstance;
+          }
+        };
+        return channelInstance;
+      },
       from: (table: string) => {
         const baseQuery = client.from(table);
         
-        // Enhance the query builder with user context
-        const enhancedQuery = {
-          ...baseQuery,
+        // Track query state
+        let queryState = {
+          filters: {} as Record<string, any>,
+          orderBy: null as { column: string; ascending: boolean } | null
+        };
+        
+        // Create chainable query builder
+        const builder = {
           select: (query?: string) => {
-            let queryBuilder = baseQuery.select(query);
-            
-            // Add user_id filter for tables that need it
-            if (['journal_entries', 'affirmations', 'gratitude_excitement', 'free_flow', 'dream_magic'].includes(table)) {
-              console.log('Adding user_id filter for table:', table);
-              queryBuilder = queryBuilder.eq('user_id', DEV_USER.id);
-            }
-            
-            // Wrap the query execution to inject mock data
-            const wrappedQuery = {
-              ...queryBuilder,
+            const enhanced = {
+              ...builder,
               eq: (column: string, value: any) => {
-                console.log(`Adding filter: ${column} = ${value}`);
-                console.log('Current query state:', queryBuilder);
-                const newQuery = wrappedQuery;
-                queryBuilder = queryBuilder.eq(column, value);
-                return newQuery;
+                queryState.filters[column] = value;
+                return enhanced;
               },
               gte: (column: string, value: any) => {
-                console.log(`Adding filter: ${column} >= ${value}`);
-                console.log('Current query state:', queryBuilder);
-                const newQuery = wrappedQuery;
-                queryBuilder = queryBuilder.gte(column, value);
-                return newQuery;
+                queryState.filters[`${column}_gte`] = value;
+                return enhanced;
               },
               lte: (column: string, value: any) => {
-                console.log(`Adding filter: ${column} <= ${value}`);
-                console.log('Current query state:', queryBuilder);
-                const newQuery = wrappedQuery;
-                queryBuilder = queryBuilder.lte(column, value);
-                return newQuery;
+                queryState.filters[`${column}_lte`] = value;
+                return enhanced;
               },
-              then: (resolve: any) => {
+              order: (column: string, { ascending = true } = {}) => {
+                queryState.orderBy = { column, ascending };
+                return enhanced;
+              },
+              then: async (resolve: any) => {
                 if (process.env.NODE_ENV === 'development' && table === 'journal_entries') {
-                  console.log(`Returning mock data for ${table}`);
-                  console.log('Final query state:', queryBuilder);
+                  console.log('Mock query state:', queryState);
                   
-                  // Get all the filters that have been applied
-                  const filters = {
-                    ...((queryBuilder as any).headers?.filter ?? {}),
-                    eq: (queryBuilder as any).eq,
-                    gte: (queryBuilder as any).gte,
-                    lte: (queryBuilder as any).lte
-                  };
-                  console.log('All applied filters:', filters);
+                  let filteredData = [...mockJournalEntries];
                   
-                  // Filter mock data based on all conditions
-                  let filteredData = mockJournalEntries;
+                  // Apply filters
+                  Object.entries(queryState.filters).forEach(([key, value]) => {
+                    if (key.endsWith('_gte')) {
+                      const field = key.replace('_gte', '') as keyof JournalEntry;
+                      filteredData = filteredData.filter(entry => 
+                        entry[field] !== null && 
+                        (entry[field] as any) >= value
+                      );
+                    } else if (key.endsWith('_lte')) {
+                      const field = key.replace('_lte', '') as keyof JournalEntry;
+                      filteredData = filteredData.filter(entry => 
+                        entry[field] !== null && 
+                        (entry[field] as any) <= value
+                      );
+                    } else {
+                      const field = key as keyof JournalEntry;
+                      filteredData = filteredData.filter(entry => 
+                        entry[field] === value
+                      );
+                    }
+                  });
                   
-                  // Apply date filters if present
-                  if (filters.gte?.date) {
-                    console.log('Filtering by start date:', filters.gte.date);
-                    filteredData = filteredData.filter(entry => entry.date >= filters.gte.date);
+                  // Apply ordering
+                  if (queryState.orderBy) {
+                    const { column, ascending } = queryState.orderBy;
+                    const field = column as keyof JournalEntry;
+                    filteredData.sort((a, b) => {
+                      const aVal = a[field];
+                      const bVal = b[field];
+                      
+                      // Handle null values in sorting
+                      if (aVal === null && bVal === null) return 0;
+                      if (aVal === null) return ascending ? 1 : -1;
+                      if (bVal === null) return ascending ? -1 : 1;
+                      
+                      // Compare non-null values
+                      if (ascending) {
+                        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                      } else {
+                        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                      }
+                    });
                   }
-                  if (filters.lte?.date) {
-                    console.log('Filtering by end date:', filters.lte.date);
-                    filteredData = filteredData.filter(entry => entry.date <= filters.lte.date);
-                  }
                   
-                  console.log('Filtered data:', filteredData);
-                  
-                  return Promise.resolve(resolve({
+                  return resolve({
                     data: filteredData,
                     error: null,
                     count: null,
                     status: 200,
                     statusText: 'OK'
-                  }));
+                  });
                 }
-                return queryBuilder.then(resolve);
+                return (baseQuery as any).then(resolve);
               }
             };
-            
-            return wrappedQuery;
+            return enhanced;
           },
           insert: (values: any) => {
             console.log(`Inserting into ${table}:`, values);
@@ -299,7 +360,7 @@ export function createClient() {
           }
         };
         
-        return enhancedQuery;
+        return builder;
       }
     };
 

@@ -3,18 +3,14 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import Link from 'next/link';
+import { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
 
 interface JournalStatusProps {
   type: 'morning' | 'evening';
 }
 
-interface JournalEntry {
-  id: string;
-  morning_completed: boolean;
-  evening_completed: boolean;
-  morning_points: number;
-  evening_points: number;
-}
+type JournalEntry = Database['public']['Tables']['journal_entries']['Row'];
 
 interface JournalStatus {
   morning_completed: boolean;
@@ -67,7 +63,11 @@ export function CompletionBadge({ completed }: { completed: boolean }) {
 }
 
 export function useJournalStatus() {
-  const [status, setStatus] = useState<JournalStatus>({
+  const [status, setStatus] = useState<{
+    morning_completed: boolean;
+    evening_completed: boolean;
+    gratitude_action_completed: boolean;
+  }>({
     morning_completed: false,
     evening_completed: false,
     gratitude_action_completed: false
@@ -77,25 +77,27 @@ export function useJournalStatus() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const supabase = createClient();
-        const today = new Date().toISOString().split('T')[0];
-
+        const supabase = createClient() as SupabaseClient<Database>;
         const { data, error } = await supabase
           .from('journal_entries')
           .select('morning_completed, evening_completed, gratitude_action_completed')
-          .eq('date', today)
-          .single();
+          .eq('date', new Date().toISOString().split('T')[0])
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-          console.error('Error fetching journal status:', error);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching status:', error);
           return;
         }
 
         if (data) {
-          setStatus(data);
+          setStatus({
+            morning_completed: Boolean(data.morning_completed),
+            evening_completed: Boolean(data.evening_completed),
+            gratitude_action_completed: Boolean(data.gratitude_action_completed)
+          });
         }
-      } catch (error) {
-        console.error('Error fetching journal status:', error);
+      } catch (err) {
+        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
@@ -104,32 +106,41 @@ export function useJournalStatus() {
     fetchStatus();
 
     // Subscribe to realtime updates
-    const supabase = createClient();
-    const channel = supabase
-      .channel('journal_status')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'journal_entries',
-          filter: `date=eq.${new Date().toISOString().split('T')[0]}`
-        },
-        (payload) => {
-          const { new: newData } = payload as any;
-          if (newData) {
-            setStatus({
-              morning_completed: newData.morning_completed,
-              evening_completed: newData.evening_completed,
-              gratitude_action_completed: newData.gratitude_action_completed
-            });
+    const supabase = createClient() as SupabaseClient<Database>;
+    let subscription: RealtimeChannel | null = null;
+
+    const setupSubscription = async () => {
+      const channel = supabase
+        .channel('journal_status')
+        .on(
+          'postgres_changes' as const,
+          {
+            event: '*',
+            schema: 'public',
+            table: 'journal_entries',
+            filter: `date=eq.${new Date().toISOString().split('T')[0]}`
+          } as const,
+          (payload: RealtimePostgresChangesPayload<JournalEntry>) => {
+            const { new: newData } = payload;
+            if (newData && 'morning_completed' in newData) {
+              setStatus({
+                morning_completed: Boolean(newData.morning_completed),
+                evening_completed: Boolean(newData.evening_completed),
+                gratitude_action_completed: Boolean(newData.gratitude_action_completed)
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        );
+      
+      subscription = await channel.subscribe() as RealtimeChannel;
+    };
+
+    setupSubscription().catch(console.error);
 
     return () => {
-      channel.unsubscribe();
+      if (subscription) {
+        void subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -144,12 +155,12 @@ export function JournalStatus({ type }: JournalStatusProps) {
   useEffect(() => {
     async function fetchJournalStatus() {
       try {
-        const supabase = createClient();
+        const supabase = createClient() as SupabaseClient<Database>;
         const { data, error } = await supabase
           .from('journal_entries')
-          .select('id, morning_completed, evening_completed, morning_points, evening_points')
+          .select('*')
           .eq('date', new Date().toISOString().split('T')[0])
-          .single();
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching journal status:', error);
