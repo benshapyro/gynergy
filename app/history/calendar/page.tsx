@@ -3,16 +3,10 @@
 import { useEffect, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { createClient } from "@/lib/supabase-client";
+import { Database } from "@/lib/database.types";
 import Link from "next/link";
 
-interface JournalEntry {
-  id: string;
-  date: string;
-  morning_completed: boolean;
-  evening_completed: boolean;
-  gratitude_action_completed: boolean;
-  total_points: number;
-}
+type JournalEntry = Database['public']['Tables']['journal_entries']['Row'];
 
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
