@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
 
 type LeaderboardEntry = {
   first_name: string;
@@ -13,32 +15,37 @@ type LeaderboardEntry = {
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = createClient() as SupabaseClient<Database>;
 
   useEffect(() => {
     async function fetchLeaderboard() {
-      const { data, error } = await supabase
-        .from('auth.users')
-        .select('raw_user_meta_data')
-        .order('raw_user_meta_data->total_points', { ascending: false })
-        .limit(10);
+      try {
+        const { data, error } = await supabase
+          .from('auth.users')
+          .select('raw_user_meta_data')
+          .order('raw_user_meta_data->total_points', { ascending: false })
+          .limit(10);
 
-      if (error) {
-        console.error('Error fetching leaderboard:', error);
-        return;
+        if (error) {
+          console.error('Error fetching leaderboard:', error);
+          return;
+        }
+
+        const leaderData = (data || [])
+          .map(user => ({
+            first_name: user.raw_user_meta_data?.first_name || 'Anonymous',
+            last_name: user.raw_user_meta_data?.last_name || '',
+            total_points: user.raw_user_meta_data?.total_points || 0,
+            streak_count: user.raw_user_meta_data?.streak_count || 0
+          }))
+          .filter(user => user.first_name !== 'Anonymous');
+
+        setLeaders(leaderData);
+      } catch (err) {
+        console.error('Error:', err);
+      } finally {
+        setIsLoading(false);
       }
-
-      const leaderData = data
-        .map(user => ({
-          first_name: user.raw_user_meta_data.first_name,
-          last_name: user.raw_user_meta_data.last_name,
-          total_points: user.raw_user_meta_data.total_points || 0,
-          streak_count: user.raw_user_meta_data.streak_count || 0
-        }))
-        .filter(user => user.first_name && user.last_name);
-
-      setLeaders(leaderData);
-      setIsLoading(false);
     }
 
     fetchLeaderboard();

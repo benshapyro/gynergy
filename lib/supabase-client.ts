@@ -10,6 +10,21 @@ interface MockData {
   journal_entries: JournalEntry[];
 }
 
+// Add type for user metadata
+interface UserMetadata {
+  first_name: string;
+  last_name: string;
+  name: string;
+  total_points: number;
+  streak_count: number;
+  [key: string]: string | number; // Allow string indexing
+}
+
+interface MockUser {
+  id: string;
+  raw_user_meta_data: UserMetadata;
+}
+
 // For development only - remove in production
 const DEV_USER: User = {
   id: '23d87cb8-e7ff-4852-a7ed-80f48093f99c',
@@ -35,6 +50,60 @@ const DEV_USER: User = {
   factors: undefined,
   identities: []
 };
+
+// Create mock users for the leaderboard
+const mockUsers: MockUser[] = [
+  {
+    id: '23d87cb8-e7ff-4852-a7ed-80f48093f99c',
+    raw_user_meta_data: {
+      first_name: 'Ben',
+      last_name: 'Shapiro',
+      name: 'Ben Shapiro',
+      total_points: 120,
+      streak_count: 7
+    }
+  },
+  {
+    id: 'mock-user-1',
+    raw_user_meta_data: {
+      first_name: 'Alice',
+      last_name: 'Johnson',
+      name: 'Alice Johnson',
+      total_points: 150,
+      streak_count: 5
+    }
+  },
+  {
+    id: 'mock-user-2',
+    raw_user_meta_data: {
+      first_name: 'Bob',
+      last_name: 'Smith',
+      name: 'Bob Smith',
+      total_points: 90,
+      streak_count: 3
+    }
+  },
+  {
+    id: 'mock-user-3',
+    raw_user_meta_data: {
+      first_name: 'Carol',
+      last_name: 'Williams',
+      name: 'Carol Williams',
+      total_points: 200,
+      streak_count: 10
+    }
+  },
+  {
+    id: 'mock-user-4',
+    raw_user_meta_data: {
+      first_name: 'David',
+      last_name: 'Brown',
+      name: 'David Brown',
+      total_points: 75,
+      streak_count: 2
+    }
+  }
+];
 
 export function createClient() {
   const client = createBrowserClient<Database>(
@@ -243,7 +312,8 @@ export function createClient() {
         // Track query state
         let queryState = {
           filters: {} as Record<string, any>,
-          orderBy: null as { column: string; ascending: boolean } | null
+          orderBy: null as { column: string; ascending: boolean } | null,
+          limitTo: null as number | null
         };
         
         // Create chainable query builder
@@ -267,10 +337,51 @@ export function createClient() {
                 queryState.orderBy = { column, ascending };
                 return enhanced;
               },
+              limit: (n: number) => {
+                queryState.limitTo = n;
+                return enhanced;
+              },
               then: async (resolve: any) => {
-                if (process.env.NODE_ENV === 'development' && table === 'journal_entries') {
-                  console.log('Mock query state:', queryState);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Mock query state:', { table, queryState });
                   
+                  // Handle auth.users table
+                  if (table === 'auth.users') {
+                    let filteredData = [...mockUsers];
+                    
+                    // Apply ordering for user metadata
+                    if (queryState.orderBy) {
+                      const { column, ascending } = queryState.orderBy;
+                      if (column.startsWith('raw_user_meta_data->')) {
+                        const field = column.replace('raw_user_meta_data->', '') as keyof UserMetadata;
+                        filteredData.sort((a, b) => {
+                          const aVal = a.raw_user_meta_data[field];
+                          const bVal = b.raw_user_meta_data[field];
+                          if (ascending) {
+                            return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                          } else {
+                            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                          }
+                        });
+                      }
+                    }
+
+                    // Apply limit
+                    if (queryState.limitTo !== null) {
+                      filteredData = filteredData.slice(0, queryState.limitTo);
+                    }
+                    
+                    console.log('Returning mock users:', filteredData);
+                    return resolve({
+                      data: filteredData,
+                      error: null,
+                      count: null,
+                      status: 200,
+                      statusText: 'OK'
+                    });
+                  }
+                  
+                  // Handle journal_entries table
                   let filteredData = [...mockJournalEntries];
                   
                   // Apply filters
@@ -315,6 +426,11 @@ export function createClient() {
                         return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
                       }
                     });
+                  }
+
+                  // Apply limit
+                  if (queryState.limitTo !== null) {
+                    filteredData = filteredData.slice(0, queryState.limitTo);
                   }
                   
                   return resolve({
