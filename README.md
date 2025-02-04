@@ -269,12 +269,13 @@ Enhancements to improve user experience and engagement.
 - **History View:** Access past journal entries.
 - **Profile Page:** Track overall stats and personalize settings.
 - **Leaderboard:** Compare progress with the community.
+- **Weekly Challenges:** Earn bonus points through community challenges.
 
 **Missing Features:**
 - Real-time leaderboard updates
 - Detailed stats comparison
 - Social interaction features
-- Community challenges
+- Weekly challenge completion tracking
 - Achievement badges display
 
 **Status:** **Partially Complete**
@@ -306,6 +307,15 @@ Users can review their journaling history in both list and calendar formats.
 ### Features Completed
 - **Core Authentication:** Secure login using Supabase and magic links
 - **Basic Dashboard:** Initial visual representation of user progress
+- **Mountain Progress Visualization:**
+  - Static star background
+  - Progress path with milestone markers
+  - Visual milestone achievement indicators
+  - Responsive design for all screen sizes
+- **Quote System:**
+  - Daily inspirational quotes
+  - Layered card design
+  - Fallback quotes for offline mode
 - **Morning Journal Flow:** 
   - Mood tracking (1-10 scale)
   - Mood factors selection
@@ -320,10 +330,13 @@ Users can review their journaling history in both list and calendar formats.
 - **Daily Gratitude Actions:**
   - Daily task completion
   - Points awarding (+10 points)
-- **Basic Points System:**
+- **Points System:**
   - Morning journal (+5 points)
   - Evening journal (+5 points)
   - Gratitude actions (+10 points)
+  - Weekly challenges (+50 points)
+  - Real-time progress tracking
+  - Visual milestone achievements
 - **History Views:**
   - List view of past entries
   - Calendar view with completion status
@@ -336,17 +349,18 @@ Users can review their journaling history in both list and calendar formats.
    - Dynamic daily quotes and gratitude actions
    - Entry review at completion
 
-2. **Mountain Progress Visualization:**
-   - 3D mountain visualization (Three.js)
-   - Interactive milestones
-   - Achievement animations
-   - Progress celebration effects
+2. **Weekly Challenge System:**
+   - Weekly community challenges (+50 points each)
+   - Challenge progress tracking
+   - Challenge completion verification
+   - Challenge history view
+   - Challenge suggestions based on user preferences
 
 3. **Leaderboard System:**
-   - Weekly activity rankings
+   - Weekly activity rankings ✓
    - Ripple effect tracking
-   - Streak monitoring
-   - Real-time updates
+   - Streak monitoring ✓
+   - Real-time updates ✓
    - Position tracking
    - Group filtering
 
@@ -611,15 +625,31 @@ The application defines several API routes to handle data operations. Below are 
 
 ### Current Progress
 
-- **Authentication:** Implemented secure email-based authentication with magic link support.
-- **Dashboard:** Fully functional dashboard displaying user progress and actionable items.
+- **Authentication:** Implemented secure email-based authentication with magic links.
+- **Dashboard:** Fully functional dashboard with:
+  - Mountain progress visualization
+  - Static star background
+  - Real-time progress tracking
+  - Layered quote card design
+  - Daily actions and status
 - **Journaling Features:** Completed morning and evening journal flows with mood tracking, reflections, affirmations, gratitude, and excitement inputs.
 - **Gratitude Actions:** Daily gratitude tasks are operational with point rewards.
-- **Progress Tracking:** Points accumulate towards defined milestones, visualized on the Mountain of Growth.
+- **Progress Tracking:** 
+  - Points accumulate towards defined milestones
+  - Visual mountain progress with achievement markers
+  - Real-time updates for user progress
+  - Milestone completion indicators
 - **History & Profile:** Users can view past entries and manage their profiles.
-- **Leaderboard:** Community engagement feature to compare progress with peers.
+- **Leaderboard:** Community engagement feature with real-time updates.
 - **Database Schema:** Comprehensive schema set up with necessary tables and relationships.
 - **Supabase Integration:** Backend correctly handles data operations, authentication, and real-time updates.
+- **Points System:** 
+  - Morning journal (+5 points)
+  - Evening journal (+5 points)
+  - Gratitude actions (+10 points)
+  - Weekly challenges (+50 points)
+  - Real-time progress tracking
+  - Visual milestone achievements
 
 ### Next Steps
 
