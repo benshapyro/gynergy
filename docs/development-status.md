@@ -25,18 +25,34 @@
    - Calendar view with completion status
    - Basic filtering
 
+5. **Mountain Progress**
+   - Static star background
+   - Progress path visualization
+   - Milestone markers
+   - Achievement indicators
+   - Responsive design
+
+6. **Quote System**
+   - Daily quote display
+   - Layered card design
+   - Fallback quotes
+   - Error handling
+
 ### ⚠️ Partially Complete Features
 
 1. **Points & Progress System**
    - ✅ Basic points calculation
    - ✅ Mountain visualization component
-   - ⚠️ Missing milestone achievements
+   - ✅ Real-time progress tracking
+   - ✅ Visual milestone indicators
+   - ⚠️ Missing achievement notifications
    - ⚠️ No points history tracking
-   - ⚠️ No achievement notifications
+   - ⚠️ Weekly challenges not implemented
 
 2. **Daily Content Systems**
    - ✅ Database tables for quotes and actions
    - ✅ Basic UI components
+   - ✅ Fallback content system
    - ⚠️ No content rotation system
    - ⚠️ Missing content libraries
    - ⚠️ No admin interface
@@ -44,6 +60,7 @@
 3. **Leaderboard**
    - ✅ Basic view implementation
    - ✅ Points and streaks tracking
+   - ✅ Real-time updates
    - ⚠️ No weekly implementation
    - ⚠️ Needs performance optimization
    - ⚠️ Missing user stats
@@ -67,6 +84,13 @@
    - Achievement notifications
    - Visual celebrations
    - Interactive milestone exploration
+
+4. **Weekly Challenges**
+   - Challenge creation and management
+   - Challenge completion verification
+   - Points integration (+50 points)
+   - Challenge history tracking
+   - User participation metrics
 
 ## Implementation Priorities
 
@@ -97,6 +121,43 @@ CREATE TABLE user_achievements (
     achievement_data JSONB,
     unlocked_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- New Weekly Challenges Tables
+CREATE TABLE weekly_challenges (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    points INTEGER DEFAULT 50,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    requirements JSONB,
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE user_challenge_progress (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users,
+    challenge_id UUID REFERENCES weekly_challenges,
+    status TEXT NOT NULL DEFAULT 'in_progress',
+    progress_data JSONB,
+    completed_at TIMESTAMPTZ,
+    points_awarded INTEGER,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, challenge_id)
+);
+
+-- Add RLS Policies
+ALTER TABLE weekly_challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_challenge_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Challenges are viewable by all authenticated users"
+    ON weekly_challenges FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can only view their own challenge progress"
+    ON user_challenge_progress FOR ALL
+    USING (auth.uid() = user_id);
 ```
 
 ### 2. Content System Enhancement
@@ -153,14 +214,6 @@ SELECT
 FROM auth.users u
 LEFT JOIN weekly_stats ws ON u.id = ws.user_id
 WHERE u.raw_user_meta_data->>'onboarded' = 'true';
-
--- Create refresh function
-CREATE OR REPLACE FUNCTION refresh_weekly_leaderboard()
-RETURNS void AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY weekly_leaderboard;
-END;
-$$ LANGUAGE plpgsql;
 ```
 
 ### 4. OCR System Implementation
@@ -188,14 +241,16 @@ async function processImage(file: File): Promise<string> {
 ## Next Steps
 
 1. **Immediate Priority**
-   - Complete points system tables
-   - Implement achievement tracking
-   - Add milestone notifications
+   - Add achievement notifications
+   - Implement points history tracking
+   - Complete weekly leaderboard implementation
+   - Implement weekly challenges system
 
 2. **Short Term**
    - Set up content libraries
    - Implement content rotation
-   - Optimize leaderboard
+   - Optimize leaderboard performance
+   - Build challenge verification system
 
 3. **Medium Term**
    - Build OCR system
