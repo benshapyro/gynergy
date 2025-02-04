@@ -1,0 +1,402 @@
+# Gynergy Journal App Development Guidelines
+
+## Core Principles
+
+- Use TypeScript for all code with strict type checking
+- Follow functional and declarative programming patterns
+- Implement mobile-first responsive design
+- Optimize for performance and accessibility
+- Maintain security best practices
+
+## Tech Stack
+
+### Primary Technologies
+- Next.js 14 (App Router)
+- Supabase (Auth, Database, Real-time)
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- OpenAI Vision API
+
+### Key Dependencies
+```json
+{
+  "dependencies": {
+    "@supabase/ssr": "latest",
+    "react-hook-form": "^7.50.0",
+    "zod": "^3.22.0",
+    "framer-motion": "^10.18.0",
+    "date-fns": "^4.1.0",
+    "react-hot-toast": "^2.5.1"
+  }
+}
+```
+
+## Project Structure
+```
+src/
+├── app/                    # Next.js pages and API routes
+├── components/            # React components
+│   ├── ui/               # Reusable UI components
+│   ├── forms/            # Form components
+│   ├── journal/          # Journal-specific components
+│   └── layout/           # Layout components
+├── lib/                  # Utilities and services
+│   ├── supabase/        # Supabase clients
+│   └── hooks/           # Custom hooks
+└── types/               # TypeScript types
+```
+
+## Code Style Guidelines
+
+### Components
+- Use functional components with TypeScript interfaces
+- Place in `src/components` with kebab-case filenames
+- Prefer named exports
+- Structure: exports, subcomponents, helpers, types
+
+```typescript
+// src/components/journal/morning-entry.tsx
+export interface MorningEntryProps {
+  userId: string;
+  date: string;
+}
+
+export function MorningEntry({ userId, date }: MorningEntryProps) {
+  // Component logic
+}
+```
+
+### TypeScript Usage
+- Use interfaces over types
+- Avoid enums; use const maps
+- Enable strict mode
+- Generate Supabase types
+
+```typescript
+// Example of const maps over enums
+const JOURNAL_STATUS = {
+  DRAFT: 'draft',
+  PUBLISHED: 'published',
+  ARCHIVED: 'archived'
+} as const;
+
+type JournalStatus = typeof JOURNAL_STATUS[keyof typeof JOURNAL_STATUS];
+```
+
+### State Management
+- Use React Server Components where possible
+- Minimize client-side state
+- Use `nuqs` for URL state
+- Keep components pure
+
+```typescript
+// Example of a Server Component
+export default async function JournalList() {
+  const journals = await fetchJournals();
+  
+  return (
+    <ul>
+      {journals.map(journal => (
+        <JournalItem key={journal.id} {...journal} />
+      ))}
+    </ul>
+  );
+}
+```
+
+### Performance Rules
+- Minimize 'use client' directives
+- Use React Suspense boundaries
+- Implement lazy loading
+- Optimize images with WebP
+- Follow Core Web Vitals guidelines
+
+```typescript
+// Example of lazy loading
+const JournalEditor = dynamic(() => import('@/components/journal/editor'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false
+});
+```
+
+## Database Guidelines
+
+### Table Naming
+- Use snake_case for tables
+- Prefix private tables with underscore
+- Example: `journal_entries`, `_audit_logs`
+
+### Security
+```sql
+-- Enable RLS
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+
+-- Create policy
+CREATE POLICY "Users can only access their own entries"
+  ON journal_entries
+  FOR ALL
+  USING (auth.uid() = user_id);
+```
+
+## Database Architecture
+
+### Schema Overview
+```mermaid
+erDiagram
+    journal_entries ||--o{ affirmations : contains
+    journal_entries ||--o{ gratitude_excitement : contains
+    journal_entries ||--o{ gratitude_action_responses : contains
+    journal_entries ||--o{ free_flow : contains
+    journal_entries ||--o{ dream_magic : contains
+    auth.users ||--o{ journal_entries : owns
+    daily_actions ||--o{ journal_entries : inspires
+    daily_quotes ||--o{ journal_entries : inspires
+```
+
+### Core Tables
+
+#### journal_entries
+```sql
+CREATE TABLE journal_entries (
+  id UUID NOT NULL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
+  date DATE NOT NULL,
+  morning_completed BOOLEAN,
+  morning_mood_score INTEGER,
+  morning_mood_factors TEXT[],
+  morning_reflection TEXT,
+  morning_points INTEGER,
+  evening_completed BOOLEAN,
+  evening_mood_score INTEGER,
+  evening_mood_factors TEXT[],
+  evening_reflection TEXT,
+  evening_points INTEGER,
+  gratitude_action_completed BOOLEAN,
+  gratitude_action_points INTEGER,
+  total_points INTEGER,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+```
+
+### Points System
+- Base Camp (0 points)
+- First Rest (50 points)
+- Halfway Point (100 points)
+- Final Push (200 points)
+- Summit (300 points)
+
+### Performance Indexes
+```sql
+-- Core indexes
+CREATE INDEX idx_journal_entries_user_id ON journal_entries(user_id);
+CREATE INDEX idx_journal_entries_date ON journal_entries(date DESC);
+CREATE UNIQUE INDEX journal_entries_user_id_date_key ON journal_entries(user_id, date);
+
+-- Component indexes
+CREATE INDEX idx_affirmations_journal ON affirmations(journal_entry_id);
+CREATE INDEX idx_gratitude_excitement_entry ON gratitude_excitement(journal_entry_id);
+CREATE INDEX idx_gratitude_responses_entry ON gratitude_action_responses(journal_entry_id);
+CREATE INDEX idx_free_flow_entry ON free_flow(journal_entry_id);
+CREATE INDEX idx_dream_magic_entry ON dream_magic(journal_entry_id);
+```
+
+### Security Policies
+```sql
+-- Enable RLS
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Users can only access their own entries"
+  ON journal_entries
+  FOR ALL
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can only insert their own entries"
+  ON journal_entries
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+```
+
+## Feature Implementation
+
+### Authentication
+```typescript
+// Example of protected API route
+import { createClient } from '@/lib/supabase/server';
+
+export async function GET() {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  
+  // Protected route logic
+}
+```
+
+### Journal Entries
+```typescript
+// Example of entry validation
+import { z } from 'zod';
+
+const journalSchema = z.object({
+  title: z.string().min(1).max(100),
+  content: z.string().min(10),
+  mood: z.number().min(1).max(10),
+  tags: z.array(z.string()).optional()
+});
+
+type JournalEntry = z.infer<typeof journalSchema>;
+```
+
+### Points System
+```typescript
+// Example of points calculation
+CREATE OR REPLACE FUNCTION calculate_points()
+RETURNS trigger AS $$
+BEGIN
+  NEW.points = (
+    CASE 
+      WHEN NEW.morning_completed THEN 5
+      WHEN NEW.evening_completed THEN 5
+      WHEN NEW.gratitude_completed THEN 10
+      ELSE 0
+    END
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## UI/UX Standards
+
+### Components
+```typescript
+// Button component example
+export function Button({ 
+  children, 
+  variant = 'primary',
+  className,
+  ...props 
+}: ButtonProps) {
+  return (
+    <button 
+      className={cn(
+        'px-4 py-2 rounded-lg transition-colors duration-200',
+        variantStyles[variant],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+### Responsive Design
+```typescript
+// Example of responsive component
+export function JournalCard({ journal }: JournalCardProps) {
+  return (
+    <div className="
+      p-4
+      sm:p-6 
+      md:p-8
+      grid
+      grid-cols-1
+      sm:grid-cols-2
+      gap-4
+    ">
+      {/* Card content */}
+    </div>
+  );
+}
+```
+
+### Animations
+```typescript
+// Example of Framer Motion animation
+export function FadeIn({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
+## Testing Requirements
+
+```typescript
+// Example test
+import { render, screen } from '@testing-library/react';
+import { JournalEntry } from './journal-entry';
+
+describe('JournalEntry', () => {
+  it('renders entry details correctly', () => {
+    render(<JournalEntry title="Test Entry" content="Test content" />);
+    expect(screen.getByText('Test Entry')).toBeInTheDocument();
+  });
+});
+```
+
+## Deployment Checklist
+
+1. Environment Configuration
+```bash
+# Required environment variables
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+OPENAI_API_KEY=your-openai-key
+```
+
+2. Database Setup
+```sql
+-- Create necessary indexes
+CREATE INDEX idx_journal_entries_user_id ON journal_entries(user_id);
+CREATE INDEX idx_journal_entries_date ON journal_entries(date DESC);
+```
+
+3. Performance
+- Enable edge functions
+- Configure caching
+- Optimize bundles
+
+4. Monitoring
+- Set up error tracking
+- Monitor performance
+- Track user metrics
+
+## Development Workflow
+
+1. Branch naming: `feature/`, `fix/`, `chore/`
+2. Commit convention: `type(scope): message`
+3. PR requirements:
+   - Pass type checking
+   - Pass linting
+   - Include tests
+   - Update documentation
+
+## Security Requirements
+
+- Enable RLS on all tables
+- Use proper authentication
+- Implement rate limiting
+- Regular security audits
+- Handle sensitive data properly
+
+## Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Tailwind CSS](https://tailwindcss.com/docs)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)

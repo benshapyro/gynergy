@@ -6,6 +6,7 @@ import MountainProgress from '@/components/journal/MountainProgress';
 import { useJournalStatus, CompletionBadge } from '@/components/journal/JournalStatus';
 import { DailyAction } from '@/components/journal/DailyAction';
 import Leaderboard from '@/components/journal/Leaderboard';
+import { useUserProgress } from '@/lib/hooks/useUserProgress';
 
 const MILESTONES = [
   { points: 0, label: 'BASE CAMP' },
@@ -17,7 +18,8 @@ const MILESTONES = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { status, loading } = useJournalStatus();
+  const { status, loading: journalLoading } = useJournalStatus();
+  const { total_points, loading: progressLoading, error: progressError } = useUserProgress();
 
   const handleStartMorningJournal = () => {
     router.push('/journal/morning');
@@ -47,11 +49,22 @@ export default function DashboardPage() {
 
       {/* Mountain Progress */}
       <div className="mountain-section">
-        <MountainProgress 
-          totalPoints={300}
-          currentPoints={75}
-          milestones={MILESTONES}
-        />
+        {progressError ? (
+          <div className="error-message">
+            Unable to load progress. Please try refreshing the page.
+          </div>
+        ) : progressLoading ? (
+          <div className="loading-message">
+            <div className="loading-spinner" />
+            <p>Loading your progress...</p>
+          </div>
+        ) : (
+          <MountainProgress 
+            totalPoints={300}
+            currentPoints={total_points}
+            milestones={MILESTONES}
+          />
+        )}
       </div>
 
       {/* Journal Cards */}
@@ -336,6 +349,47 @@ export default function DashboardPage() {
           color: rgb(160, 160, 160);
         }
 
+        .loading-message {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 400px;
+          color: var(--color-gray-400);
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(10px);
+          border-radius: var(--radius-lg);
+          gap: 1rem;
+        }
+
+        .loading-spinner {
+          width: 2rem;
+          height: 2rem;
+          border: 2px solid var(--color-gray-700);
+          border-top-color: var(--color-primary);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 400px;
+          color: var(--color-gray-400);
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(10px);
+          border-radius: var(--radius-lg);
+          padding: 2rem;
+          text-align: center;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         @media (max-width: 768px) {
           .dashboard {
             padding: 1rem;
@@ -382,6 +436,11 @@ export default function DashboardPage() {
             font-size: 6rem;
             top: -1.5rem;
             left: 1.5rem;
+          }
+
+          .loading-message,
+          .error-message {
+            height: 300px;
           }
         }
       `}</style>
