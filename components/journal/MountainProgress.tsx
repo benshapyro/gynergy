@@ -19,7 +19,9 @@ export default function MountainProgress({
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    setProgress((currentPoints / totalPoints) * 100);
+    // Calculate progress percentage
+    const calculatedProgress = (currentPoints / totalPoints) * 100;
+    setProgress(Math.min(calculatedProgress, 100)); // Ensure we don't exceed 100%
   }, [currentPoints, totalPoints]);
 
   // Find current milestone
@@ -30,26 +32,42 @@ export default function MountainProgress({
 
   // Calculate next milestone points safely
   const pointsToNext = (() => {
-    const nextMilestone = milestones.find(m => m.points > currentPoints);
-    return nextMilestone ? nextMilestone.points - currentPoints : 0;
+    const currentIndex = milestones.findIndex(m => m.points > currentPoints);
+    if (currentIndex === -1) return 0; // Already at max
+    return milestones[currentIndex].points - currentPoints;
   })();
+
+  // Calculate progress line length (from bottom left to top middle of mountain)
+  const totalPathLength = Math.sqrt(Math.pow(500, 2) + Math.pow(400, 2)); // Pythagorean theorem
 
   return (
     <div className="mountain-container">
       {/* Background Elements */}
       <div className="stars">
-        {[...Array(100)].map((_, i) => (
-          <div 
-            key={i} 
-            className={`star star-${i % 3}`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 60}%`,
-              animationDelay: `${Math.random() * 10}s`,
-              transform: `scale(${0.8 + Math.random() * 0.4})`
-            }}
-          />
-        ))}
+        {[...Array(75)].map((_, i) => {
+          // Use index-based positions instead of random for stability
+          const row = Math.floor(i / 10);
+          const col = i % 10;
+          const size = ((i + 4) % 8 === 0) ? 2 : 1;
+          const xOffset = (row % 2) * 5; // Offset alternate rows
+          
+          return (
+            <div 
+              key={i} 
+              className="star"
+              style={{
+                position: 'absolute',
+                left: `${(col * 10) + xOffset + ((i * 7) % 5)}%`,
+                top: `${(row * 8) + ((i * 11) % 6)}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                backgroundColor: '#ffffff',
+                opacity: 0.3 + ((i % 4) * 0.1),
+                boxShadow: size === 2 ? '0 0 2px rgba(255, 255, 255, 0.3)' : 'none'
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* SVG Mountains */}
@@ -85,20 +103,18 @@ export default function MountainProgress({
           className="progress-path"
           d="M100 600 L600 200"
           fill="none"
-          strokeDasharray="1400"
-          strokeDashoffset={1400 - (progress * 14)}
+          strokeDasharray={totalPathLength}
+          strokeDashoffset={totalPathLength - ((progress / 100) * totalPathLength)}
         />
 
         {/* Milestone Markers */}
         {milestones.map((milestone, index) => {
-          const milestoneProgress = (milestone.points / totalPoints) * 100;
-          
           // Calculate position along the mountain slope
-          const progress = milestone.points / totalPoints;
-          const x = 100 + (progress * 500); // From 100 to 600 (mountain peak)
-          const y = 600 - (progress * 400); // From 600 to 200 (mountain height)
+          const milestoneProgress = (milestone.points / totalPoints) * 100;
+          const x = 100 + ((milestone.points / totalPoints) * 500);
+          const y = 600 - ((milestone.points / totalPoints) * 400);
           
-          // Mark as achieved if current points are higher than this milestone
+          // Mark as achieved if progress line has reached or passed this point
           const isAchieved = currentPoints >= milestone.points;
           
           return (
@@ -115,10 +131,32 @@ export default function MountainProgress({
               >
                 {milestone.label}
               </text>
-              <circle className="milestone-marker" r="5" />
+              <circle 
+                className="milestone-marker" 
+                r="5" 
+                filter={isAchieved ? 'url(#glow)' : 'none'}
+              />
+              {isAchieved && (
+                <circle 
+                  className="milestone-glow"
+                  r="8"
+                  opacity="0.4"
+                />
+              )}
             </g>
           );
         })}
+
+        {/* Filters */}
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
       </svg>
 
       {/* Progress Stats */}
@@ -155,49 +193,13 @@ export default function MountainProgress({
           right: 0;
           bottom: 0;
           overflow: hidden;
+          pointer-events: none;
+          z-index: 0;
         }
 
         .star {
           position: absolute;
-          background: white;
           border-radius: 50%;
-          opacity: 0;
-          animation: twinkle 5s infinite;
-        }
-
-        .star-0 {
-          width: 1px;
-          height: 1px;
-          box-shadow: 
-            0 0 2px rgba(255, 255, 255, 0.8),
-            0 0 4px rgba(255, 255, 255, 0.4);
-        }
-
-        .star-1 {
-          width: 2px;
-          height: 2px;
-          box-shadow: 
-            0 0 4px rgba(255, 255, 255, 0.8),
-            0 0 8px rgba(255, 255, 255, 0.4);
-        }
-
-        .star-2 {
-          width: 3px;
-          height: 3px;
-          box-shadow: 
-            0 0 6px rgba(255, 255, 255, 0.8),
-            0 0 12px rgba(255, 255, 255, 0.4);
-        }
-
-        @keyframes twinkle {
-          0%, 100% { 
-            opacity: 0; 
-            transform: scale(1); 
-          }
-          50% { 
-            opacity: 0.8; 
-            transform: scale(1.2); 
-          }
         }
 
         .mountains {
@@ -249,7 +251,11 @@ export default function MountainProgress({
 
         .milestone.achieved .milestone-marker {
           fill: rgb(255, 200, 120);
-          filter: drop-shadow(0 0 6px rgba(255, 200, 120, 0.8));
+        }
+
+        .milestone-glow {
+          fill: rgb(255, 200, 120);
+          filter: blur(4px);
         }
 
         .milestone-label {
@@ -257,7 +263,6 @@ export default function MountainProgress({
           fill: rgb(140, 140, 160);
           font-weight: 500;
           letter-spacing: 0.05em;
-          transition: all 0.3s ease;
           filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
         }
 
