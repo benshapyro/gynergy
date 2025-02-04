@@ -1,17 +1,9 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { User, AuthChangeEvent, Session, PostgrestSingleResponse } from '@supabase/supabase-js'
+import { Database } from './database.types'
 
 // Add type definitions at the top of the file
-interface JournalEntry {
-  id: string;
-  user_id: string;
-  date: string;
-  morning_completed: boolean;
-  evening_completed: boolean;
-  gratitude_action_completed: boolean;
-  total_points: number;
-}
-
+type JournalEntry = Database['public']['Tables']['journal_entries']['Row'];
 type MockResponse = PostgrestSingleResponse<JournalEntry[]>;
 
 interface MockData {
@@ -45,7 +37,7 @@ const DEV_USER: User = {
 };
 
 export function createClient() {
-  const client = createBrowserClient(
+  const client = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
@@ -72,36 +64,80 @@ export function createClient() {
         user_id: DEV_USER.id,
         date: '2025-02-04',
         morning_completed: true,
+        morning_mood_score: 8,
+        morning_mood_factors: ['SLEEP', 'EXERCISE'],
+        morning_reflection: 'Had a great morning routine!',
+        morning_points: 10,
         evening_completed: true,
+        evening_mood_score: 9,
+        evening_mood_factors: ['PRODUCTIVITY', 'SOCIAL'],
+        evening_reflection: 'Productive day with good social interactions',
+        evening_points: 10,
         gratitude_action_completed: true,
-        total_points: 20
+        gratitude_action_points: 5,
+        total_points: 25,
+        created_at: '2025-02-04T08:00:00.000Z',
+        updated_at: '2025-02-04T20:00:00.000Z'
       },
       {
         id: 'mock-2',
         user_id: DEV_USER.id,
         date: '2025-02-03',
         morning_completed: true,
+        morning_mood_score: 7,
+        morning_mood_factors: ['SLEEP'],
+        morning_reflection: 'Decent morning start',
+        morning_points: 10,
         evening_completed: true,
+        evening_mood_score: 8,
+        evening_mood_factors: ['PRODUCTIVITY'],
+        evening_reflection: 'Got a lot done today',
+        evening_points: 10,
         gratitude_action_completed: true,
-        total_points: 20
+        gratitude_action_points: 5,
+        total_points: 25,
+        created_at: '2025-02-03T08:00:00.000Z',
+        updated_at: '2025-02-03T20:00:00.000Z'
       },
       {
         id: 'mock-3',
         user_id: DEV_USER.id,
         date: '2025-02-02',
         morning_completed: true,
+        morning_mood_score: 9,
+        morning_mood_factors: ['SLEEP', 'EXERCISE', 'NUTRITION'],
+        morning_reflection: 'Amazing start to the day!',
+        morning_points: 10,
         evening_completed: true,
+        evening_mood_score: 8,
+        evening_mood_factors: ['PRODUCTIVITY', 'SOCIAL', 'HOBBIES'],
+        evening_reflection: 'Great balance of work and fun',
+        evening_points: 10,
         gratitude_action_completed: true,
-        total_points: 20
+        gratitude_action_points: 5,
+        total_points: 25,
+        created_at: '2025-02-02T08:00:00.000Z',
+        updated_at: '2025-02-02T20:00:00.000Z'
       },
       {
         id: 'mock-4',
         user_id: DEV_USER.id,
         date: '2025-02-01',
         morning_completed: true,
+        morning_mood_score: 8,
+        morning_mood_factors: ['SLEEP', 'MEDITATION'],
+        morning_reflection: 'Started with meditation, feeling centered',
+        morning_points: 10,
         evening_completed: true,
+        evening_mood_score: 9,
+        evening_mood_factors: ['PRODUCTIVITY', 'LEARNING'],
+        evening_reflection: 'Learned some new things today',
+        evening_points: 10,
         gratitude_action_completed: true,
-        total_points: 20
+        gratitude_action_points: 5,
+        total_points: 25,
+        created_at: '2025-02-01T08:00:00.000Z',
+        updated_at: '2025-02-01T20:00:00.000Z'
       }
     ];
 
