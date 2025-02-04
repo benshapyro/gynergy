@@ -65,15 +65,15 @@ The primary goal of the Gynergy Journal App is to foster personal growth and min
 ### Installation
 
 1. **Clone the Repository**
-    ```bash
-    git clone https://github.com/benshapyro/gynergy.git
-    cd gynergy
+   ```bash
+   git clone https://github.com/benshapyro/gynergy.git
+   cd gynergy
     ```
 
 2. **Install Dependencies**
     ```bash
-    npm install
-    ```
+   npm install
+   ```
     *or*
     ```bash
     yarn install
@@ -83,22 +83,22 @@ The primary goal of the Gynergy Journal App is to foster personal growth and min
 
 1. **Configure Environment Variables**
    - Copy the `.env.template` to `.env.local`:
-     ```bash
+   ```bash
      cp .env.template .env.local
      ```
    - Fill in the required variables in `.env.local`:
      ```env
      # Supabase Configuration
-     NEXT_PUBLIC_SUPABASE_URL=your-project-url
-     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-     SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
      # OpenAI Vision API
-     OPENAI_API_KEY=your-openai-api-key
+   OPENAI_API_KEY=your-openai-api-key
 
-     # Development Configuration
-     NEXT_PUBLIC_SITE_URL=http://localhost:3000
-     ```
+   # Development Configuration
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   ```
 
 ### Database Setup
 
@@ -112,9 +112,9 @@ The primary goal of the Gynergy Journal App is to foster personal growth and min
 ### Running the Application
 
 1. **Start the Development Server**
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
     *or*
     ```bash
     yarn dev
@@ -397,31 +397,31 @@ Users can review their journaling history in both list and calendar formats.
      - Responsive layouts
    - Analytics & Insights:
      - Personal growth dashboards
-     - Mood tracking visualization
+   - Mood tracking visualization
      - Progress patterns
    - Performance Optimization:
-     - React Suspense implementation
-     - Intelligent prefetching
+   - React Suspense implementation
+   - Intelligent prefetching
      - Bundle optimization
      - Image optimization
    - PWA Features:
      - Offline support
-     - Push notifications
-     - Quick-add widgets
-     - App shortcuts
-     - Background sync
+   - Push notifications
+   - Quick-add widgets
+   - App shortcuts
+   - Background sync
    - Accessibility:
-     - WCAG 2.1 Level AAA compliance
+   - WCAG 2.1 Level AAA compliance
      - Screen reader optimization
-     - Keyboard navigation
+   - Keyboard navigation
      - High contrast modes
-     - Reduced motion options
+   - Reduced motion options
    - Security & Privacy:
-     - End-to-end encryption
-     - Privacy-focused analytics
-     - Granular sharing controls
-     - Two-factor authentication
-     - Regular security audits
+   - End-to-end encryption
+   - Privacy-focused analytics
+   - Granular sharing controls
+   - Two-factor authentication
+   - Regular security audits
 
 ### Priority Order
 1. Complete morning/evening journals and gratitude actions
