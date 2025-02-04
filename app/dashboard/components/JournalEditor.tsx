@@ -22,7 +22,7 @@ export default function JournalEditor() {
 
     try {
       const formData = new FormData();
-      formData.append("journalImage", photoFile);
+      formData.append("file", photoFile);
 
       const res = await fetch("/api/journal/upload", {
         method: "POST",
@@ -42,10 +42,28 @@ export default function JournalEditor() {
   const handleSave = async () => {
     setFeedback("Saving your journal entry...");
     try {
+      const date = new Date().toISOString().split('T')[0];
+      const payload = {
+        date,
+        morning_completed: true,
+        morning_mood_score: 5,
+        morning_mood_factors: [],
+        morning_reflection: text,
+        morning_points: 5,
+        evening_completed: false,
+        evening_mood_score: null,
+        evening_mood_factors: [],
+        evening_reflection: "",
+        evening_points: 0,
+        gratitude_action_completed: false,
+        gratitude_action_points: 0,
+        total_points: 5
+      };
+
       const res = await fetch("/api/journal/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
