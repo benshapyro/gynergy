@@ -27,8 +27,26 @@ export default function CalendarPage() {
   async function fetchEntries() {
     try {
       const supabase = createClient();
+      
+      // Add debug logging for auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Calendar view - Auth user:', user);
+      if (authError) {
+        console.error('Calendar view - Auth error:', authError);
+        throw authError;
+      }
+      if (!user) {
+        console.error('Calendar view - No authenticated user found');
+        throw new Error('Not authenticated');
+      }
+
       const startDate = startOfMonth(currentMonth);
       const endDate = endOfMonth(currentMonth);
+      console.log('Fetching entries for date range:', { 
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        currentMonth: currentMonth.toISOString().split('T')[0]
+      });
 
       const { data, error } = await supabase
         .from('journal_entries')
@@ -40,13 +58,28 @@ export default function CalendarPage() {
           gratitude_action_completed,
           total_points
         `)
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString());
+        .eq('user_id', user.id)
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
 
-      if (error) throw error;
-      setEntries(data || []);
+      console.log('Calendar query response:', { 
+        data, 
+        error,
+        query: {
+          user_id: user.id,
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0],
+          test_data_range: 'CURRENT_DATE - 6 days to CURRENT_DATE'
+        }
+      });
+      if (error) {
+        console.error('Calendar view - Query error:', error);
+        throw error;
+      }
+      
+      setEntries((data as any[] || []) as JournalEntry[]);
     } catch (err) {
-      console.error('Error fetching entries:', err);
+      console.error('Calendar view - Error fetching entries:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch entries');
     } finally {
       setLoading(false);

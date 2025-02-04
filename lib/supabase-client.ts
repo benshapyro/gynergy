@@ -1,17 +1,38 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
+import { User, AuthChangeEvent, Session, PostgrestSingleResponse } from '@supabase/supabase-js'
+
+// Add type definitions at the top of the file
+interface JournalEntry {
+  id: string;
+  user_id: string;
+  date: string;
+  morning_completed: boolean;
+  evening_completed: boolean;
+  gratitude_action_completed: boolean;
+  total_points: number;
+}
+
+type MockResponse = PostgrestSingleResponse<JournalEntry[]>;
+
+interface MockData {
+  journal_entries: JournalEntry[];
+}
 
 // For development only - remove in production
 const DEV_USER: User = {
-  id: 'a1b2c3d4-e5f6-4321-8901-abcdef123456', // Valid UUID format
+  id: '23d87cb8-e7ff-4852-a7ed-80f48093f99c',
   app_metadata: {},
   user_metadata: { 
-    name: 'Test User',
-    onboarded: false // Add this to trigger the onboarding flow
+    first_name: 'Ben',
+    last_name: 'Shapiro',
+    name: 'Ben Shapiro',
+    onboarded: true,
+    total_points: 120,
+    streak_count: 7
   },
   aud: 'authenticated',
   created_at: new Date().toISOString(),
-  email: 'test@example.com',
+  email: 'benshapyro@gmail.com',
   phone: '',
   role: 'authenticated',
   updated_at: new Date().toISOString(),
@@ -44,81 +65,210 @@ export function createClient() {
     // Store auth callbacks
     const authCallbacks: ((event: AuthChangeEvent, session: Session | null) => void)[] = [];
 
-    const mockAuth = {
-      getUser: async () => ({ data: { user: DEV_USER }, error: null }),
-      getSession: async () => ({ 
-        data: { session: createMockSession(DEV_USER) }, 
-        error: null 
-      }),
-      signInWithOtp: async ({ email }: { email: string }) => {
-        // Create a user with the provided email
-        const mockUser = { ...DEV_USER, email };
-        const mockSession = createMockSession(mockUser);
-
-        // Trigger auth state change immediately
-        setTimeout(() => {
-          authCallbacks.forEach(cb => cb('SIGNED_IN', mockSession));
-        }, 100);
-
-        return { data: { user: mockUser }, error: null };
+    // Create mock data for February 2025
+    const mockJournalEntries: JournalEntry[] = [
+      {
+        id: 'mock-1',
+        user_id: DEV_USER.id,
+        date: '2025-02-04',
+        morning_completed: true,
+        evening_completed: true,
+        gratitude_action_completed: true,
+        total_points: 20
       },
-      signOut: async () => {
-        // Trigger auth state change
-        authCallbacks.forEach(cb => cb('SIGNED_OUT', null));
-        return { error: null };
+      {
+        id: 'mock-2',
+        user_id: DEV_USER.id,
+        date: '2025-02-03',
+        morning_completed: true,
+        evening_completed: true,
+        gratitude_action_completed: true,
+        total_points: 20
       },
-      onAuthStateChange: (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
-        // Store callback
-        authCallbacks.push(callback);
-        
-        // Return mock subscription
-        return {
-          data: { 
-            subscription: {
-              unsubscribe: () => {
-                const index = authCallbacks.indexOf(callback);
-                if (index > -1) {
-                  authCallbacks.splice(index, 1);
+      {
+        id: 'mock-3',
+        user_id: DEV_USER.id,
+        date: '2025-02-02',
+        morning_completed: true,
+        evening_completed: true,
+        gratitude_action_completed: true,
+        total_points: 20
+      },
+      {
+        id: 'mock-4',
+        user_id: DEV_USER.id,
+        date: '2025-02-01',
+        morning_completed: true,
+        evening_completed: true,
+        gratitude_action_completed: true,
+        total_points: 20
+      }
+    ];
+
+    // Create a mock client that wraps the real client
+    const mockClient = {
+      ...client,
+      auth: {
+        getUser: async () => ({ data: { user: DEV_USER }, error: null }),
+        getSession: async () => ({ 
+          data: { session: createMockSession(DEV_USER) }, 
+          error: null 
+        }),
+        signInWithOtp: async ({ email }: { email: string }) => {
+          // Create a user with the provided email
+          const mockUser = { ...DEV_USER, email };
+          const mockSession = createMockSession(mockUser);
+
+          // Trigger auth state change immediately
+          setTimeout(() => {
+            authCallbacks.forEach(cb => cb('SIGNED_IN', mockSession));
+          }, 100);
+
+          return { data: { user: mockUser }, error: null };
+        },
+        signOut: async () => {
+          // Trigger auth state change
+          authCallbacks.forEach(cb => cb('SIGNED_OUT', null));
+          return { error: null };
+        },
+        onAuthStateChange: (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
+          // Store callback
+          authCallbacks.push(callback);
+          
+          // Return mock subscription
+          return {
+            data: { 
+              subscription: {
+                unsubscribe: () => {
+                  const index = authCallbacks.indexOf(callback);
+                  if (index > -1) {
+                    authCallbacks.splice(index, 1);
+                  }
                 }
               }
-            }
-          },
-          error: null
-        };
+            },
+            error: null
+          };
+        }
       },
-      updateUser: async (attributes: { email?: string; password?: string; data?: Record<string, any> }) => {
-        // Update the dev user with new attributes
-        const updatedUser = {
-          ...DEV_USER,
-          ...attributes,
-          user_metadata: {
-            ...DEV_USER.user_metadata,
-            ...(attributes.data || {})
+      from: (table: string) => {
+        const baseQuery = client.from(table);
+        
+        // Enhance the query builder with user context
+        const enhancedQuery = {
+          ...baseQuery,
+          select: (query?: string) => {
+            let queryBuilder = baseQuery.select(query);
+            
+            // Add user_id filter for tables that need it
+            if (['journal_entries', 'affirmations', 'gratitude_excitement', 'free_flow', 'dream_magic'].includes(table)) {
+              console.log('Adding user_id filter for table:', table);
+              queryBuilder = queryBuilder.eq('user_id', DEV_USER.id);
+            }
+            
+            // Wrap the query execution to inject mock data
+            const wrappedQuery = {
+              ...queryBuilder,
+              eq: (column: string, value: any) => {
+                console.log(`Adding filter: ${column} = ${value}`);
+                console.log('Current query state:', queryBuilder);
+                const newQuery = wrappedQuery;
+                queryBuilder = queryBuilder.eq(column, value);
+                return newQuery;
+              },
+              gte: (column: string, value: any) => {
+                console.log(`Adding filter: ${column} >= ${value}`);
+                console.log('Current query state:', queryBuilder);
+                const newQuery = wrappedQuery;
+                queryBuilder = queryBuilder.gte(column, value);
+                return newQuery;
+              },
+              lte: (column: string, value: any) => {
+                console.log(`Adding filter: ${column} <= ${value}`);
+                console.log('Current query state:', queryBuilder);
+                const newQuery = wrappedQuery;
+                queryBuilder = queryBuilder.lte(column, value);
+                return newQuery;
+              },
+              then: (resolve: any) => {
+                if (process.env.NODE_ENV === 'development' && table === 'journal_entries') {
+                  console.log(`Returning mock data for ${table}`);
+                  console.log('Final query state:', queryBuilder);
+                  
+                  // Get all the filters that have been applied
+                  const filters = {
+                    ...((queryBuilder as any).headers?.filter ?? {}),
+                    eq: (queryBuilder as any).eq,
+                    gte: (queryBuilder as any).gte,
+                    lte: (queryBuilder as any).lte
+                  };
+                  console.log('All applied filters:', filters);
+                  
+                  // Filter mock data based on all conditions
+                  let filteredData = mockJournalEntries;
+                  
+                  // Apply date filters if present
+                  if (filters.gte?.date) {
+                    console.log('Filtering by start date:', filters.gte.date);
+                    filteredData = filteredData.filter(entry => entry.date >= filters.gte.date);
+                  }
+                  if (filters.lte?.date) {
+                    console.log('Filtering by end date:', filters.lte.date);
+                    filteredData = filteredData.filter(entry => entry.date <= filters.lte.date);
+                  }
+                  
+                  console.log('Filtered data:', filteredData);
+                  
+                  return Promise.resolve(resolve({
+                    data: filteredData,
+                    error: null,
+                    count: null,
+                    status: 200,
+                    statusText: 'OK'
+                  }));
+                }
+                return queryBuilder.then(resolve);
+              }
+            };
+            
+            return wrappedQuery;
+          },
+          insert: (values: any) => {
+            console.log(`Inserting into ${table}:`, values);
+            // Automatically add user_id for tables that need it
+            if (['journal_entries', 'affirmations', 'gratitude_excitement', 'free_flow', 'dream_magic'].includes(table)) {
+              if (Array.isArray(values)) {
+                values = values.map(v => ({ ...v, user_id: DEV_USER.id }));
+              } else {
+                values = { ...values, user_id: DEV_USER.id };
+              }
+            }
+            return baseQuery.insert(values);
+          },
+          update: (values: any) => {
+            console.log(`Updating ${table}:`, values);
+            let queryBuilder = baseQuery.update(values);
+            if (['journal_entries', 'affirmations', 'gratitude_excitement', 'free_flow', 'dream_magic'].includes(table)) {
+              queryBuilder = queryBuilder.eq('user_id', DEV_USER.id);
+            }
+            return queryBuilder;
+          },
+          delete: () => {
+            console.log(`Deleting from ${table}`);
+            let queryBuilder = baseQuery.delete();
+            if (['journal_entries', 'affirmations', 'gratitude_excitement', 'free_flow', 'dream_magic'].includes(table)) {
+              queryBuilder = queryBuilder.eq('user_id', DEV_USER.id);
+            }
+            return queryBuilder;
           }
         };
         
-        // Create new session with updated user
-        const mockSession = createMockSession(updatedUser);
-        
-        // Trigger auth state change
-        setTimeout(() => {
-          authCallbacks.forEach(cb => cb('USER_UPDATED', mockSession));
-        }, 100);
-
-        return { data: { user: updatedUser }, error: null };
+        return enhancedQuery;
       }
     };
 
-    return {
-      ...client,
-      auth: mockAuth,
-      // Preserve all other client methods
-      from: client.from.bind(client),
-      rpc: client.rpc.bind(client),
-      channel: client.channel.bind(client),
-      realtime: client.realtime
-    };
+    return mockClient;
   }
 
   return client;
-} 
+}

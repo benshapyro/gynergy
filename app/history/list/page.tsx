@@ -32,6 +32,20 @@ export default function HistoryListPage() {
   async function fetchEntries() {
     try {
       const supabase = createClient();
+      
+      // Add debug logging for auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Auth user:', user);
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('Not authenticated');
+      }
+
+      console.log('Fetching entries for user:', user.id);
       const { data, error } = await supabase
         .from('journal_entries')
         .select(`
@@ -48,10 +62,17 @@ export default function HistoryListPage() {
           gratitude_action_completed,
           total_points
         `)
+        .eq('user_id', user.id)  // Add explicit user_id filter
         .order('date', { ascending: false });
 
-      if (error) throw error;
-      setEntries(data || []);
+      // Add debug logging for query results
+      console.log('Query response:', { data, error });
+      if (error) {
+        console.error('Query error:', error);
+        throw error;
+      }
+      
+      setEntries(data as JournalEntry[] || []);
     } catch (err) {
       console.error('Error fetching entries:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch entries');
