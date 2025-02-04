@@ -1,5 +1,29 @@
 # Database Documentation
 
+## Table of Contents
+
+1. [Schema Overview](#schema-overview)
+2. [Core Tables](#core-tables)
+   - [journal_entries](#journal_entries)
+   - [affirmations](#affirmations)
+   - [gratitude_excitement](#gratitude_excitement)
+   - [gratitude_action_responses](#gratitude_action_responses)
+   - [free_flow](#free_flow)
+   - [dream_magic](#dream_magic)
+3. [Authentication Tables](#authentication-tables)
+   - [flow_state](#flow_state)
+   - [one_time_tokens](#one_time_tokens)
+4. [System Tables](#system-tables)
+   - [instances](#instances)
+   - [schema_migrations](#schema_migrations)
+5. [Database Functions](#database-functions)
+   - [Journal Entry Functions](#journal-entry-functions)
+   - [Triggers](#triggers)
+6. [Performance Considerations](#performance-considerations)
+7. [Development Notes](#development-notes)
+   - [Type Safety](#type-safety)
+   - [Mock Data](#mock-data)
+
 ## Schema Overview
 
 ### Application Schemas
@@ -255,6 +279,273 @@ ORDER BY COALESCE(us.calculated_points, 0) DESC NULLS LAST;
 
 ##### schema_migrations
 **Description**: Manages updates to the auth system.
+
+
+### Database Functions
+
+#### Journal Entry Functions
+
+```sql
+-- Complete Morning Entry
+CREATE OR REPLACE FUNCTION public.complete_morning_entry(entry_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+    -- Update points
+    PERFORM update_journal_points(entry_id);
+    -- Update streak
+    PERFORM update_user_streak(auth.uid());
+END;
+$$;
+
+-- Complete Evening Entry
+CREATE OR REPLACE FUNCTION public.complete_evening_entry(entry_id uuid, tomorrow_plan text)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  current_points INTEGER;
+  current_streak INTEGER;
+BEGIN
+  -- Verify the entry exists and evening section is complete
+  IF NOT is_evening_complete(entry_id) THEN
+    RAISE EXCEPTION 'Evening section is not complete';
+  END IF;
+
+  -- Update tomorrow's plan and points
+  UPDATE journal_entries
+  SET tomorrow_plan = $2,
+      evening_points = 5
+  WHERE id = entry_id;
+
+  -- Get current points and streak
+  SELECT total_points, streak_count
+  INTO current_points, current_streak
+  FROM journal_entries
+  WHERE id = entry_id;
+
+  -- Update total points
+  UPDATE journal_entries
+  SET total_points = current_points + 5
+  WHERE id = entry_id;
+
+  -- Update user metadata
+  UPDATE auth.users
+  SET raw_user_meta_data = jsonb_set(
+    COALESCE(raw_user_meta_data, '{}'::jsonb),
+    '{total_points}',
+    to_jsonb(current_points + 5)
+  )
+  WHERE id = (
+    SELECT user_id 
+    FROM journal_entries 
+    WHERE id = entry_id
+  );
+END;
+$$;
+
+-- Complete Gratitude Action
+CREATE OR REPLACE FUNCTION public.complete_gratitude_action(entry_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+    -- Update points
+    PERFORM update_journal_points(entry_id);
+END;
+$$;
+
+-- Update Journal Points
+CREATE OR REPLACE FUNCTION public.update_journal_points(entry_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+    morning_complete BOOLEAN;
+    evening_complete BOOLEAN;
+    action_complete BOOLEAN;
+    user_id UUID;
+BEGIN
+    -- Get user_id for this entry
+    SELECT journal_entries.user_id INTO user_id
+    FROM journal_entries
+    WHERE journal_entries.id = entry_id;
+
+    -- Only proceed if the user owns this entry
+    IF user_id = auth.uid() THEN
+        morning_complete := is_morning_complete(entry_id);
+        evening_complete := is_evening_complete(entry_id);
+        
+        SELECT action_completed INTO action_complete
+        FROM gratitude_action_responses
+        WHERE journal_entry_id = entry_id;
+
+        -- Update points
+        UPDATE journal_entries
+        SET 
+            morning_points = CASE WHEN morning_complete THEN 5 ELSE 0 END,
+            evening_points = CASE WHEN evening_complete THEN 5 ELSE 0 END,
+            gratitude_action_points = CASE WHEN action_complete THEN 10 ELSE 0 END
+        WHERE id = entry_id;
+
+        -- Update user's total points
+        UPDATE auth.users 
+        SET raw_user_meta_data = jsonb_set(
+            COALESCE(raw_user_meta_data, '{}'::jsonb),
+            '{total_points}',
+            (
+                SELECT to_jsonb(COALESCE(SUM(total_points), 0))
+                FROM journal_entries
+                WHERE user_id = auth.uid()
+            )
+        )
+        WHERE id = auth.uid();
+    END IF;
+END;
+$$;
+
+-- Update User Streak
+CREATE OR REPLACE FUNCTION public.update_user_streak(user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+    last_entry_date DATE;
+    current_streak INTEGER;
+    latest_entry_date DATE;
+BEGIN
+    -- Only proceed if this is the user's own streak
+    IF user_id = auth.uid() THEN
+        -- Get the user's latest entry date
+        SELECT date INTO latest_entry_date
+        FROM journal_entries
+        WHERE user_id = auth.uid()
+        ORDER BY date DESC
+        LIMIT 1;
+
+        -- Get the previous entry date
+        SELECT date INTO last_entry_date
+        FROM journal_entries
+        WHERE user_id = auth.uid()
+        AND date < latest_entry_date
+        ORDER BY date DESC
+        LIMIT 1;
+
+        -- Get current streak
+        SELECT streak_count INTO current_streak
+        FROM auth.users
+        WHERE id = auth.uid();
+
+        -- Update streak based on entry dates
+        IF last_entry_date IS NULL OR latest_entry_date = last_entry_date + INTERVAL '1 day' THEN
+            -- First entry or consecutive day
+            UPDATE auth.users 
+            SET streak_count = COALESCE(current_streak, 0) + 1
+            WHERE id = auth.uid();
+        ELSIF latest_entry_date > last_entry_date + INTERVAL '1 day' THEN
+            -- Streak broken
+            UPDATE auth.users 
+            SET streak_count = 1
+            WHERE id = auth.uid();
+        END IF;
+    END IF;
+END;
+$$;
+
+-- Check if Morning Entry is Complete
+CREATE OR REPLACE FUNCTION public.is_morning_complete(journal_entry_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    morning_affirmation_count INTEGER;
+    gratitude_count INTEGER;
+    excitement_count INTEGER;
+BEGIN
+    -- Check main morning fields
+    IF NOT EXISTS (
+        SELECT 1 FROM journal_entries 
+        WHERE id = journal_entry_id 
+        AND morning_mood_score IS NOT NULL
+        AND morning_mood_factors IS NOT NULL
+        AND morning_reflection IS NOT NULL
+    ) THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Check affirmations (need all 5)
+    SELECT COUNT(*) INTO morning_affirmation_count
+    FROM affirmations
+    WHERE journal_entry_id = journal_entry_id;
+    
+    -- Check gratitude items (need all 3)
+    SELECT COUNT(*) INTO gratitude_count
+    FROM gratitude_excitement
+    WHERE journal_entry_id = journal_entry_id AND type = 'gratitude';
+    
+    -- Check excitement items (need all 3)
+    SELECT COUNT(*) INTO excitement_count
+    FROM gratitude_excitement
+    WHERE journal_entry_id = journal_entry_id AND type = 'excitement';
+    
+    RETURN morning_affirmation_count >= 5 
+        AND gratitude_count >= 3 
+        AND excitement_count >= 3;
+END;
+$$;
+
+-- Check if Evening Entry is Complete
+CREATE OR REPLACE FUNCTION public.is_evening_complete(journal_entry_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM journal_entries 
+        WHERE id = journal_entry_id 
+        AND evening_mood_score IS NOT NULL
+        AND evening_mood_factors IS NOT NULL
+        AND evening_reflection IS NOT NULL
+    );
+END;
+$$;
+
+-- Update Updated At Column
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+```
+
+#### Triggers
+
+```sql
+-- Update Updated At Trigger
+CREATE TRIGGER update_updated_at_timestamp
+    BEFORE UPDATE ON journal_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Update Points Trigger
+CREATE TRIGGER update_points_after_changes
+    AFTER INSERT OR UPDATE ON journal_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION update_journal_points();
+```
 
 ## Performance Considerations
 
